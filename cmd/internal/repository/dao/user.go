@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+	"time"
 )
 
 // ErrUserDuplicate 这个算是 user 专属的
@@ -28,19 +30,36 @@ func NewGORMUserDAO(db *gorm.DB) *GORMUserDAO {
 }
 
 func (ud *GORMUserDAO) Insert(ctx context.Context, u User) error {
-	panic("")
+	now := time.Now().UnixMilli()
+	u.Ctime = now
+	u.Utime = now
+	err := ud.db.WithContext(ctx).Create(&u).Error
+	if me, ok := err.(*mysql.MySQLError); ok {
+		const uniqueIndexErrNo uint16 = 1062
+		if me.Number == uniqueIndexErrNo {
+			return ErrUserDuplicate
+		}
+	}
+	return err
+
 }
 
 func (ud *GORMUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
-	panic("")
+	var u User
+	err := ud.db.WithContext(ctx).First(&u, "phone = ?", phone).Error
+	return u, err
 }
 
 func (ud *GORMUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
-	panic("")
+	var u User
+	err := ud.db.WithContext(ctx).First(&u, "email = ?", email).Error
+	return u, err
 }
 
 func (ud *GORMUserDAO) FindById(ctx context.Context, id int64) (User, error) {
-	panic("")
+	var u User
+	err := ud.db.WithContext(ctx).First(&u, "id = ?", id).Error
+	return u, err
 }
 
 type User struct {

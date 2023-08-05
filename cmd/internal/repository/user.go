@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
@@ -31,17 +32,48 @@ func NewCachedUserRepository(d dao.UserDAO,
 }
 
 func (ur *CachedUserRepository) Create(ctx context.Context, u domain.User) error {
-	panic("")
+	return ur.dao.Insert(ctx, dao.User{
+		Email: sql.NullString{
+			String: u.Email,
+			Valid:  u.Email != "",
+		},
+		Phone: sql.NullString{
+			String: u.Phone,
+			Valid:  u.Phone != "",
+		},
+		Password: u.Password,
+	})
 }
 
 func (ur *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
-	panic("")
+	u, err := ur.dao.FindByPhone(ctx, phone)
+	return ur.entityToDomain(u), err
 }
 
 func (ur *CachedUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
-	panic("")
+	u, err := ur.dao.FindByEmail(ctx, email)
+	return ur.entityToDomain(u), err
 }
 
 func (ur *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
-	panic("")
+	u, err := ur.cache.Get(ctx, id)
+	if err == nil {
+		return u, err
+	}
+	ue, err := ur.dao.FindById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	u = ur.entityToDomain(ue)
+	_ = ur.cache.Set(ctx, u)
+	return u, nil
+}
+
+func (ur *CachedUserRepository) entityToDomain(ue dao.User) domain.User {
+	return domain.User{
+		Id:       ue.Id,
+		Email:    ue.Email.String,
+		Password: ue.Password,
+		Phone:    ue.Phone.String,
+	}
 }
