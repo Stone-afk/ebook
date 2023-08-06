@@ -2,7 +2,13 @@ package web
 
 import (
 	"ebook/cmd/internal/service"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+const (
+	userIdKey = "userId"
 )
 
 var _ handler = &UserHandler{}
@@ -50,7 +56,32 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 
 // Login 用户登录接口
 func (h *UserHandler) Login(ctx *gin.Context) {
-	panic("")
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	// 当我们调用 Bind 方法的时候，如果有问题，Bind 方法已经直接写响应回去了
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	u, err := h.svc.Login(ctx, req.Email, req.Password)
+	if err == service.ErrInvalidUserOrPassword {
+		ctx.String(http.StatusOK, "用户名或者密码不正确，请重试")
+		return
+	}
+	sess := sessions.Default(ctx)
+	sess.Set(userIdKey, u.Id)
+	sess.Options(sessions.Options{
+		// 60 秒过期
+		MaxAge: 60,
+	})
+	err = sess.Save()
+	if err != nil {
+		ctx.String(http.StatusOK, "服务器异常")
+		return
+	}
+	ctx.String(http.StatusOK, "登录成功")
 }
 
 // LoginJWT 用户登录接口
@@ -70,7 +101,21 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 
 // Profile 用户详情
 func (h *UserHandler) Profile(ctx *gin.Context) {
-	panic("")
+	type Profile struct {
+		Email string
+	}
+	sess := sessions.Default(ctx)
+	id := sess.Get(userIdKey).(int64)
+	u, err := h.svc.Profile(ctx, id)
+	if err != nil {
+		// 按照道理来说，这边 id 对应的数据肯定存在，所以要是没找到，
+		// 那就说明是系统出了问题。
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.JSON(http.StatusOK, Profile{
+		Email: u.Email,
+	})
 }
 
 // ProfileJWT 用户详情, JWT 版本
