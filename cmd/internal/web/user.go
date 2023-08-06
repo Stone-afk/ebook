@@ -1,17 +1,41 @@
 package web
 
 import (
+	"ebook/cmd/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
-type UserHandler struct{}
+var _ handler = &UserHandler{}
 
-func NewUserHandler() *UserHandler {
-	panic("")
+type UserHandler struct {
+	svc service.UserService
+}
+
+func NewUserHandler(svc service.UserService) *UserHandler {
+	return &UserHandler{
+		svc: svc,
+	}
 }
 
 func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
-	panic("")
+	// 直接注册
+	//server.POST("/users/signup", c.SignUp)
+	//server.POST("/users/login", c.Login)
+	//server.POST("/users/edit", c.Edit)
+	//server.GET("/users/profile", c.Profile)
+
+	// 分组注册
+	ug := server.Group("/users")
+	ug.POST("/signup", h.SignUp)
+	// session 机制
+	//ug.POST("/login", c.Login)
+	// JWT 机制
+	ug.POST("/login", h.LoginJWT)
+	ug.POST("/edit", h.Edit)
+	//ug.GET("/profile", c.Profile)
+	ug.GET("/profile", h.ProfileJWT)
+	ug.POST("/login_sms", h.LoginSMS)
+	ug.POST("/login_sms/code/send", h.SendSMSLoginCode)
 }
 
 // SendSMSLoginCode 发送短信验证码
