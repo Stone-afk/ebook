@@ -8,6 +8,9 @@ import (
 	"ebook/cmd/internal/repository/dao"
 )
 
+var ErrUserDuplicate = dao.ErrUserDuplicate
+var ErrUserNotFound = dao.ErrDataNotFound
+
 type UserRepository interface {
 	Create(ctx context.Context, u domain.User) error
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)

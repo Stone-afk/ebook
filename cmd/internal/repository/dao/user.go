@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// ErrDataNotFound 通用的数据没找到
+var ErrDataNotFound = gorm.ErrRecordNotFound
+
 // ErrUserDuplicate 这个算是 user 专属的
 var ErrUserDuplicate = errors.New("用户邮箱或者手机号冲突")
 
