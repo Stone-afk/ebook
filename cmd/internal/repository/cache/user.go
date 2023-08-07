@@ -18,21 +18,21 @@ type UserCache interface {
 }
 
 type RedisUserCache struct {
-	client redis.Cmdable
+	cmd redis.Cmdable
 	// 过期时间
 	expiration time.Duration
 }
 
-func NewRedisUserCache(client redis.Cmdable) *RedisUserCache {
+func NewRedisUserCache(cmd redis.Cmdable) *RedisUserCache {
 	return &RedisUserCache{
-		client:     client,
+		cmd:        cmd,
 		expiration: time.Minute * 15,
 	}
 }
 
 func (c *RedisUserCache) Get(ctx context.Context, id int64) (domain.User, error) {
 	key := c.key(id)
-	data, err := c.client.Get(ctx, key).Result()
+	data, err := c.cmd.Get(ctx, key).Result()
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -47,7 +47,7 @@ func (c *RedisUserCache) Set(ctx context.Context, u domain.User) error {
 	if err != nil {
 		return err
 	}
-	return c.client.Set(ctx, c.key(u.Id), data, c.expiration).Err()
+	return c.cmd.Set(ctx, c.key(u.Id), data, c.expiration).Err()
 }
 
 func (c *RedisUserCache) key(id int64) string {

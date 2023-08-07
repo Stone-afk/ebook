@@ -18,23 +18,23 @@ type UserRepository interface {
 	FindById(ctx context.Context, id int64) (domain.User, error)
 }
 
-// CachedUserRepository 使用了缓存的 repository 实现
-type CachedUserRepository struct {
+// UserRepository 使用了缓存的 repository 实现
+type userRepository struct {
 	dao   dao.UserDAO
 	cache cache.UserCache
 }
 
-// NewCachedUserRepository 也说明了 CachedUserRepository 的特性
+// NewUserRepository 也说明了 CachedUserRepository 的特性
 // 会从缓存和数据库中去尝试获得
-func NewCachedUserRepository(d dao.UserDAO,
-	c cache.UserCache) *CachedUserRepository {
-	return &CachedUserRepository{
+func NewUserRepository(d dao.UserDAO,
+	c cache.UserCache) UserRepository {
+	return &userRepository{
 		dao:   d,
 		cache: c,
 	}
 }
 
-func (ur *CachedUserRepository) Create(ctx context.Context, u domain.User) error {
+func (ur *userRepository) Create(ctx context.Context, u domain.User) error {
 	return ur.dao.Insert(ctx, dao.User{
 		Email: sql.NullString{
 			String: u.Email,
@@ -48,17 +48,17 @@ func (ur *CachedUserRepository) Create(ctx context.Context, u domain.User) error
 	})
 }
 
-func (ur *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+func (ur *userRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	u, err := ur.dao.FindByPhone(ctx, phone)
 	return ur.entityToDomain(u), err
 }
 
-func (ur *CachedUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
+func (ur *userRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	u, err := ur.dao.FindByEmail(ctx, email)
 	return ur.entityToDomain(u), err
 }
 
-func (ur *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+func (ur *userRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
 	u, err := ur.cache.Get(ctx, id)
 	if err == nil {
 		return u, err
@@ -72,7 +72,7 @@ func (ur *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.
 	return u, nil
 }
 
-func (ur *CachedUserRepository) entityToDomain(ue dao.User) domain.User {
+func (ur *userRepository) entityToDomain(ue dao.User) domain.User {
 	return domain.User{
 		Id:       ue.Id,
 		Email:    ue.Email.String,
