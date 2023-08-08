@@ -14,7 +14,10 @@ func NewJWTLoginMiddlewareBuilder() *JWTLoginMiddlewareBuilder {
 }
 
 func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
-	return func(context *gin.Context) {
-
+	return func(ctx *gin.Context) {
+		// 不需要校验
+		if l.publicPaths.Exist(ctx.Request.URL.Path) {
+			return
+		}
 	}
 }
