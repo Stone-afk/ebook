@@ -10,7 +10,14 @@ type JWTLoginMiddlewareBuilder struct {
 }
 
 func NewJWTLoginMiddlewareBuilder() *JWTLoginMiddlewareBuilder {
-	return &JWTLoginMiddlewareBuilder{}
+	s := set.NewMapSet[string](3)
+	s.Add("/users/signup")
+	s.Add("/users/login_sms/code/send")
+	s.Add("/users/login_sms")
+	s.Add("/users/login")
+	return &JWTLoginMiddlewareBuilder{
+		publicPaths: s,
+	}
 }
 
 func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
