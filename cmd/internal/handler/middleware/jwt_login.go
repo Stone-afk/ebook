@@ -52,8 +52,8 @@ func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
 		}
 
 		tokenStr := authSegments[1]
-		uc := handler.UserClaims{}
-		token, err := jwt.ParseWithClaims(tokenStr, &uc, func(token *jwt.Token) (interface{}, error) {
+		claims := handler.UserClaims{}
+		token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
 			return handler.JWTKey, nil
 		})
 		if err != nil || !token.Valid {
@@ -62,7 +62,7 @@ func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
-		expireTime, err := uc.GetExpirationTime()
+		expireTime, err := claims.GetExpirationTime()
 		if err != nil {
 			// 拿不到过期时间
 			ctx.AbortWithStatus(http.StatusUnauthorized)
@@ -75,19 +75,20 @@ func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
-		if ctx.GetHeader("User-Agent") != uc.UserAgent {
+		if ctx.GetHeader("User-Agent") != claims.UserAgent {
 			// 换了一个 User-Agent，可能是攻击者
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 		// 每 10 秒刷新一次
 		if expireTime.Sub(time.Now()) < time.Second*50 {
-			uc.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
+			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
 			newTokenStr, err := token.SignedString(handler.JWTKey)
 			if err != nil {
 				// 因为刷新这个事情，并不是一定要做的，所以这里可以考虑打印日志
 				// 暂时这样打印
-				log.Println(err)
+				// 记录日志
+				log.Println("jwt 续约失败", err)
 			} else {
 				ctx.Header("x-jwt-token", newTokenStr)
 			}
@@ -95,6 +96,7 @@ func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
 
 		// 说明 token 是合法的
 		// 我们把这个 token 里面的数据放到 ctx 里面，后面用的时候就不用再次 Parse 了
-		ctx.Set("user", uc)
+		ctx.Set("user", claims)
+
 	}
 }
