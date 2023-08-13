@@ -26,6 +26,11 @@ func NewJWTLoginMiddlewareBuilder() *JWTLoginMiddlewareBuilder {
 	}
 }
 
+func (l *JWTLoginMiddlewareBuilder) IgnorePaths(path string) *JWTLoginMiddlewareBuilder {
+	l.publicPaths.Add(path)
+	return l
+}
+
 func (l *JWTLoginMiddlewareBuilder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// 不需要校验
