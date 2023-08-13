@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"ebook/cmd/internal/handler"
+	"ebook/cmd/internal/handler/middleware"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
@@ -52,12 +53,14 @@ func initServer() *gin.Engine {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	// 步骤1
+	// 设置 session
 	store := cookie.NewStore([]byte("secret"))
+	//store := memstore.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"),
+	//	[]byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
 	server.Use(sessions.Sessions("mysession", store))
 
 	// jwt 登录中间件
-	server.Use()
+	server.Use(middleware.NewJWTLoginMiddlewareBuilder().Build())
 
 	return server
 
