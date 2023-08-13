@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"ebook/cmd/internal/handler"
