@@ -56,6 +56,9 @@ func initServer() *gin.Engine {
 	store := cookie.NewStore([]byte("secret"))
 	server.Use(sessions.Sessions("mysession", store))
 
+	// jwt 登录中间件
+	server.Use()
+
 	return server
 
 }
