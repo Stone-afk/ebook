@@ -9,7 +9,7 @@ import (
 	"ebook/cmd/internal/service"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
@@ -40,7 +40,8 @@ func initServer() *gin.Engine {
 		//AllowOrigins: []string{"*"},
 		//AllowMethods: []string{"POST", "GET"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
-		//ExposeHeaders: []string{"x-jwt-token"},
+		// 不加这个，前端是拿不到 jwt
+		ExposeHeaders: []string{"x-jwt-token"},
 		// 是否允许你带 cookie 之类的东西
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
@@ -54,10 +55,19 @@ func initServer() *gin.Engine {
 	}))
 
 	// 设置 session
-	store := cookie.NewStore([]byte("secret"))
-	//store := memstore.NewStore([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"),
-	//	[]byte("0Pf2r0wZBpXVXlQNdpwCXN4ncnlnZSc3"))
-	server.Use(sessions.Sessions("mysession", store))
+	//// 设置到 cookie
+	//store := cookie.NewStore([]byte("secret"))
+	//// 设置到本地内存
+	store := memstore.NewStore(handler.SessAuthKey, handler.SessEncryptionKey)
+	// 设置到redis
+	//store, err := redisSess.NewStore(16,
+	//	"tcp", "localhost:6379", "",
+	//	handler.SessAuthKey, handler.SessEncryptionKey)
+	//
+	//if err != nil {
+	//	panic(err)
+	//}
+	server.Use(sessions.Sessions("SESS", store))
 
 	// jwt 登录中间件
 	server.Use(middleware.NewJWTLoginMiddlewareBuilder().Build())
