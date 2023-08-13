@@ -30,7 +30,7 @@ func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 		sess := sessions.Default(ctx)
-		// 验证一下就可以
+		// 验证一下就可以, 如果 session 是存在cache或者db，高并发情况下每次请求都要这样访问，显然，缓存或db是承受不住的。
 		if sess.Get("userId") == nil {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
