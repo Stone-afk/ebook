@@ -1,12 +1,14 @@
 package main
 
 import (
+	"ebook/cmd/config"
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/handler/middleware"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
 	"ebook/cmd/internal/service"
+	"ebook/cmd/pkg/ginx/middleware/ratelimit"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
@@ -34,6 +36,11 @@ func main() {
 
 func initServer() *gin.Engine {
 	server := gin.Default()
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
 	// 跨域拦截器
 	server.Use(cors.New(cors.Config{
