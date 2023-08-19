@@ -27,6 +27,11 @@ func NewBuilder(cmd redis.Cmdable, interval time.Duration, rate int) *Builder {
 	}
 }
 
+func (b *Builder) Prefix(prefix string) *Builder {
+	b.prefix = prefix
+	return b
+}
+
 func (b *Builder) Build() gin.HandlerFunc {
 	return func(context *gin.Context) {
 
