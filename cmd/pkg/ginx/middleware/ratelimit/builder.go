@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	_ "embed"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"time"
@@ -39,5 +40,7 @@ func (b *Builder) Build() gin.HandlerFunc {
 }
 
 func (b *Builder) limit(ctx *gin.Context) (bool, error) {
-	panic("")
+	key := fmt.Sprintf("%s:%s", b.prefix, ctx.ClientIP())
+	return b.cmd.Eval(ctx, luaScript, []string{key},
+		b.interval.Microseconds(), b.rate, time.Now().UnixMilli()).Bool()
 }
