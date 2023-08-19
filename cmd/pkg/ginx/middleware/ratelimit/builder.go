@@ -32,3 +32,7 @@ func (b *Builder) Build() gin.HandlerFunc {
 
 	}
 }
+
+func (b *Builder) limit(ctx *gin.Context) (bool, error) {
+	panic("")
+}
