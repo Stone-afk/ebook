@@ -13,6 +13,6 @@ var Config = ebookConfig{
 		DSN: "localhost:13316",
 	},
 	Redis: RedisConfig{
-		Addr: "localhost:6379",
+		Addr: "localhost:16379",
 	},
 }

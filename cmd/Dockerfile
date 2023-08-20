@@ -5,4 +5,4 @@ COPY ebook /app/ebook
 WORKDIR /app
 # CMD 是执行命令
 # 最佳
-ENTRYPOINT ["/app/webook"]
+ENTRYPOINT ["/app/ebook"]
