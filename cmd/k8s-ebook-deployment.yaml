@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ebook-live
+#  specification
+spec:
+#  副本数量
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ebook-live
+#      template 描述的是你的 POD 是什么样的
+  template:
+    metadata:
+      labels:
+        app: ebook-live
+#    POD 的具体信息
+    spec:
+      containers:
+        - name: ebook
+          image: stone/ebook-live:v0.0.1
+          ports:
+            - containerPort: 8080
