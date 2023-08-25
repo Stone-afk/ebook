@@ -1,7 +1,6 @@
 package main
 
 import (
-	"ebook/cmd/config"
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/handler/middleware"
 	"ebook/cmd/internal/repository"
@@ -45,7 +44,7 @@ func initServer() *gin.Engine {
 	server := gin.Default()
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: config.Config.Redis.Addr,
+		Addr: "localhost:16379",
 	})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
