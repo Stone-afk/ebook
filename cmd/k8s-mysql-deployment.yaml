@@ -1,14 +1,43 @@
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: ebook-live-mysql
-spec:
-  selector:
+  labels:
     app: ebook-live-mysql
-  port:
-    - protocol: TCP
-      # 你访问的端口
-      port: 13306
-      targetPort: 3306
-      nodePort: 30002
-  type: NodePort
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ebook-live-mysql
+  template:
+    metadata:
+      name: ebook-live-mysql
+      labels:
+        app: ebook-live-mysql
+    spec:
+      containers:
+        - name: ebook-live-mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            #            - 这边要对应到 mysql 的数据存储的位置
+            #            - 通过 MySQL 的配置可以改这个目录
+            - mountPath: /var/lib/mysql
+              #              我 POD 里面有那么多 volumes，我要用哪个
+              name: mysql-storage
+          ports:
+            - containerPort: 3306
+      #        - name: ebook-live-hadoop
+      restartPolicy: Always
+      #      我整个 POD 有哪些
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: ebook-mysql-live-claim-v3
+    #        - name: hadoop-storage
+    #          persistentVolumeClaim:
+    #            claimName: ebook-hadoop-live-claim
+
