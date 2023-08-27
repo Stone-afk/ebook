@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ebook-live-redis
+  labels:
+    app: ebook-live-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ebook-live-redis
+  template:
+    metadata:
+      name: ebook-live-redis
+      labels:
+        app: ebook-live-redis
+    spec:
+      containers:
+        - name: ebook-live-redis
+          image: redis:latest
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
