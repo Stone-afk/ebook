@@ -189,7 +189,50 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 
 // Edit 用户编译信息
 func (h *UserHandler) Edit(ctx *gin.Context) {
-	panic("")
+	type Req struct {
+		// 注意，其它字段，尤其是密码、邮箱和手机，
+		// 修改都要通过别的手段
+		// 邮箱和手机都要验证
+		// 密码更加不用多说了
+		Nickname string `json:"nickname"`
+		Birthday string `json:"birthday"`
+		AboutMe  string `json:"aboutMe"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	// 你可以尝试在这里校验。
+	// 比如说你可以要求 Nickname 必须不为空
+	// 校验规则取决于产品经理
+	if req.Nickname == "" {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "昵称不能为空"})
+	}
+
+	if len(req.AboutMe) > 1024 {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "关于我的信息过长"})
+		return
+	}
+	birthday, err := time.Parse(time.DateOnly, req.Birthday)
+	if err != nil {
+		// 也就是说，我们其实并没有直接校验具体的格式
+		// 而是如果你能转化过来，那就说明没问题
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "日期格式不对"})
+		return
+	}
+	uc := ctx.MustGet("user").(UserClaims)
+	err = h.svc.UpdateNonSensitiveInfo(ctx, domain.User{
+		Id:       uc.Id,
+		Nickname: req.Nickname,
+		AboutMe:  req.AboutMe,
+		Birthday: birthday,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{Msg: "OK"})
+
 }
 
 // Profile 用户详情
