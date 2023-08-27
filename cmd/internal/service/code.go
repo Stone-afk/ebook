@@ -10,3 +10,8 @@ type CodeService struct {
 	smsSvc sms.Service
 	//tplId string
 }
+
+type NamedArg struct {
+	Val  string
+	Name string
+}
