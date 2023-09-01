@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"fmt"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -49,4 +50,8 @@ func (c *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error
 
 func (c *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
 	panic("")
+}
+
+func (c *RedisCodeCache) key(biz, phone string) string {
+	return fmt.Sprintf("phone_code:%s:%s", biz, phone)
 }
