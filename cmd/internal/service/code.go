@@ -8,6 +8,8 @@ import (
 	"math/rand"
 )
 
+const codeTplId = "1877556"
+
 var (
 	ErrCodeVerifyTooManyTimes = repository.ErrCodeVerifyTooManyTimes
 	ErrCodeSendTooMany        = repository.ErrCodeSendTooMany
@@ -33,11 +35,30 @@ func NewCodeService(repo repository.CodeRepository, smsSvc sms.Service) CodeServ
 
 // Send 发验证码，我需要什么参数？
 func (svc *codeService) Send(ctx context.Context, biz string, phone string) error {
-	panic("")
+	// 生成一个验证码
+	code := svc.generateCode()
+	// 塞进去 Redis
+	err := svc.repo.Store(ctx, biz, phone, code)
+	if err != nil {
+		// 有问题
+		return err
+	}
+	// 这前面成功了, 接下来发送出去
+	// svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
+	//if err != nil {
+	// 这个地方怎么办？
+	// 这意味着，Redis 有这个验证码，但是不好意思，
+	// 我能不能删掉这个验证码？
+	// 你这个 err 可能是超时的 err，你都不知道，发出了没
+	// 在这里重试
+	// 要重试的话，初始化的时候，传入一个自己就会重试的 smsSvc
+	//}
+	return svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
+
 }
 
 func (svc *codeService) Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error) {
-	panic("")
+	return svc.repo.Verify(ctx, biz, phone, inputCode)
 }
 
 func (svc *codeService) generateCode() string {
