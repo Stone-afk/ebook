@@ -54,7 +54,6 @@ func (svc *codeService) Send(ctx context.Context, biz string, phone string) erro
 	// 要重试的话，初始化的时候，传入一个自己就会重试的 smsSvc
 	//}
 	return svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
-
 }
 
 func (svc *codeService) Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error) {

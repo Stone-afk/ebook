@@ -26,9 +26,9 @@ func NewCodeRepository(c cache.CodeCache) CodeRepository {
 }
 
 func (repo *CachedCodeRepository) Store(ctx context.Context, biz string, phone string, code string) error {
-	panic("")
+	return repo.cache.Set(ctx, biz, phone, code)
 }
 
 func (repo *CachedCodeRepository) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
-	panic("")
+	return repo.cache.Verify(ctx, biz, phone, inputCode)
 }

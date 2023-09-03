@@ -44,14 +44,45 @@ func NewCodeCache(cmd redis.Cmdable) CodeCache {
 	}
 }
 
-func (c *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error {
-	panic("")
+func (rc *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error {
+	res, err := rc.cmd.Eval(ctx, luaSetCode, []string{rc.key(biz, phone)}, code).Int()
+	if err != nil {
+		return err
+	}
+	switch res {
+	case 0:
+		// 毫无问题
+		return nil
+	case 1:
+		// 发送太频繁
+		return ErrCodeSendTooMany
+	//case -2:
+	//	return
+	default:
+		// 系统错误
+		return errors.New("系统错误")
+	}
 }
 
-func (c *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
-	panic("")
+func (rc *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
+	res, err := rc.cmd.Eval(ctx, luaVerifyCode, []string{rc.key(biz, phone)}, inputCode).Int()
+	if err != nil {
+		return false, err
+	}
+	switch res {
+	case 0:
+		return true, nil
+	case -1:
+		// 正常来说，如果频繁出现这个错误，你就要告警，因为有人搞你
+		return false, ErrCodeVerifyTooManyTimes
+	case -2:
+		return false, nil
+		//default:
+		//	return false, ErrUnknownForCode
+	}
+	return false, ErrUnknownForCode
 }
 
-func (c *RedisCodeCache) key(biz, phone string) string {
+func (rc *RedisCodeCache) key(biz, phone string) string {
 	return fmt.Sprintf("phone_code:%s:%s", biz, phone)
 }
