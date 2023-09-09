@@ -13,6 +13,13 @@ import (
 	"time"
 )
 
+func InitWebServer(mdls []gin.HandlerFunc, userHdl *handler.UserHandler) *gin.Engine {
+	server := gin.Default()
+	server.Use(mdls...)
+	userHdl.RegisterRoutes(server)
+	return server
+}
+
 func InitMiddlewares(redisCmd redis.Cmdable) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		corsHdl(),
