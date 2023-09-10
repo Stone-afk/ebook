@@ -15,6 +15,8 @@ var ErrDataNotFound = gorm.ErrRecordNotFound
 // ErrUserDuplicate 这个算是 user 专属的
 var ErrUserDuplicate = errors.New("用户邮箱或者手机号冲突")
 
+var _ UserDAO = &GORMUserDAO{}
+
 type UserDAO interface {
 	Insert(ctx context.Context, u User) error
 	FindByPhone(ctx context.Context, phone string) (User, error)
@@ -28,7 +30,7 @@ type GORMUserDAO struct {
 	db *gorm.DB
 }
 
-func NewGORMUserDAO(db *gorm.DB) *GORMUserDAO {
+func NewGORMUserDAO(db *gorm.DB) UserDAO {
 	return &GORMUserDAO{
 		db: db,
 	}

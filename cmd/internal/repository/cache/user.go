@@ -12,6 +12,8 @@ import (
 // ErrKeyNotExist 因为我们目前还是只有一个实现，所以可以保持用别名
 var ErrKeyNotExist = redis.Nil
 
+var _ UserCache = &RedisUserCache{}
+
 type UserCache interface {
 	Get(ctx context.Context, id int64) (domain.User, error)
 	Set(ctx context.Context, u domain.User) error
@@ -24,7 +26,7 @@ type RedisUserCache struct {
 	expiration time.Duration
 }
 
-func NewRedisUserCache(cmd redis.Cmdable) *RedisUserCache {
+func NewRedisUserCache(cmd redis.Cmdable) UserCache {
 	return &RedisUserCache{
 		cmd:        cmd,
 		expiration: time.Minute * 15,
