@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ebook/cmd/config"
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/handler/middleware"
 	"ebook/cmd/internal/repository"
@@ -21,14 +22,12 @@ import (
 )
 
 func main() {
-	//db := initDB()
-	//rc := initRedis()
-	//u := initUser(db, rc)
-	//
-	//server := initServer()
-	//u.RegisterRoutes(server)
+	db := initDB()
+	rc := initRedis()
+	u := initUser(db, rc)
 
-	server := gin.Default()
+	server := initServer()
+	u.RegisterRoutes(server)
 
 	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "你好，你来了")
@@ -44,7 +43,7 @@ func initServer() *gin.Engine {
 	server := gin.Default()
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:16379",
+		Addr: config.Config.Redis.Addr,
 	})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
@@ -99,7 +98,7 @@ func initUser(db *gorm.DB, rcCmd redis.Cmdable) *handler.UserHandler {
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/ebook"))
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		// 我只会在初始化过程中 panic
 		// panic 相当于整个 goroutine 结束
@@ -116,7 +115,7 @@ func initDB() *gorm.DB {
 
 func initRedis() redis.Cmdable {
 	return redis.NewClient(&redis.Options{
-		Addr:     "localhost:16379",
+		Addr:     config.Config.Redis.Addr,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})

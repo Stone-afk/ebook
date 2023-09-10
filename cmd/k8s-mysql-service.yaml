@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     app: ebook-live-mysql
-  port:
+  ports:
     - protocol: TCP
       # 你访问的端口
       port: 13306
