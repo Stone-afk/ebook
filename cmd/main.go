@@ -8,6 +8,7 @@ import (
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
 	"ebook/cmd/internal/service"
+	"ebook/cmd/internal/service/sms/memory"
 	"ebook/cmd/pkg/ginx/middleware/ratelimit"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -33,7 +34,7 @@ func main() {
 		ctx.String(http.StatusOK, "你好，你来了")
 	})
 
-	err := server.Run(":8080")
+	err := server.Run(":8083")
 	if err != nil {
 		panic(err)
 	}
@@ -90,10 +91,13 @@ func initServer() *gin.Engine {
 
 func initUser(db *gorm.DB, rcCmd redis.Cmdable) *handler.UserHandler {
 	rc := cache.NewRedisUserCache(rcCmd)
+	codeRc := cache.NewCodeCache(rcCmd)
 	ud := dao.NewGORMUserDAO(db)
 	repo := repository.NewUserRepository(ud, rc)
+	codeRepo := repository.NewCodeRepository(codeRc)
 	svc := service.NewUserService(repo)
-	u := handler.NewUserHandler(svc)
+	codeSvc := service.NewCodeService(codeRepo, memory.NewService())
+	u := handler.NewUserHandler(svc, codeSvc)
 	return u
 }
 
