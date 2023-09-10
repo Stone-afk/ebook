@@ -5,7 +5,7 @@ kind: PersistentVolume
 metadata:
   name: my-local-pv-v3
 spec:
-  storageClassName: mysql_live
+  storageClassName: mysql-live
   capacity:
     storage: 1Gi
   accessModes:

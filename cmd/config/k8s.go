@@ -3,7 +3,7 @@
 // 使用 k8s 这个编译标签
 package config
 
-var Config = config{
+var Config = ebookConfig{
 	DB: DBConfig{
 		// 本地连接
 		DSN: "root:root@tcp(ebook-live-mysql:11309)/ebook",
