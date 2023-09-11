@@ -12,6 +12,8 @@ import (
 var ErrUserDuplicate = dao.ErrUserDuplicate
 var ErrUserNotFound = dao.ErrDataNotFound
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/user.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/user.mock.go
+
 type UserRepository interface {
 	Create(ctx context.Context, u domain.User) error
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
