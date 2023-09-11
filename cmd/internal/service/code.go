@@ -15,6 +15,8 @@ var (
 	ErrCodeSendTooMany        = repository.ErrCodeSendTooMany
 )
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/code.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/code.mock.go
+
 // CodeService biz 区别业务场景
 type CodeService interface {
 	Send(ctx context.Context, biz string, phone string) error
