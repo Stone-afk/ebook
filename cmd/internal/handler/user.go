@@ -251,7 +251,7 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 		return
 	}
 	if !isEmail {
-		ctx.String(http.StatusOK, "邮箱不正确")
+		ctx.String(http.StatusOK, "邮箱格式不正确")
 		return
 	}
 
@@ -278,7 +278,7 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 	}
 
 	if err != nil {
-		ctx.String(http.StatusOK, "注册失败，服务器异常")
+		ctx.String(http.StatusOK, "注册失败，系统异常")
 		return
 	}
 	ctx.String(http.StatusOK, "注册成功")
