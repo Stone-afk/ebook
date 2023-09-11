@@ -81,6 +81,9 @@ func (svc *userService) Login(ctx context.Context, email, password string) (doma
 	if err == repository.ErrUserNotFound {
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
+	if err != nil {
+		return domain.User{}, err
+	}
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		return domain.User{}, ErrInvalidUserOrPassword
