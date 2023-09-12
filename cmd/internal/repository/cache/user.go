@@ -12,6 +12,8 @@ import (
 // ErrKeyNotExist 因为我们目前还是只有一个实现，所以可以保持用别名
 var ErrKeyNotExist = redis.Nil
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/user.go -package=cachemocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/mocks/user.mock.go
+
 var _ UserCache = &RedisUserCache{}
 
 type UserCache interface {
