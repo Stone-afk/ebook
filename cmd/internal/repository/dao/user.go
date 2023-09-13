@@ -15,6 +15,8 @@ var ErrDataNotFound = gorm.ErrRecordNotFound
 // ErrUserDuplicate 这个算是 user 专属的
 var ErrUserDuplicate = errors.New("用户邮箱或者手机号冲突")
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/dao/user.go -package=daomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/dao/mocks/user.mock.go
+
 var _ UserDAO = &GORMUserDAO{}
 
 type UserDAO interface {
