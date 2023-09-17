@@ -3,7 +3,8 @@ package ioc
 import (
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/handler/middleware"
-	"ebook/cmd/pkg/ginx/middleware/ratelimit"
+	limitMiddleware "ebook/cmd/pkg/ginx/middleware/ratelimit"
+	"ebook/cmd/pkg/ratelimit"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
@@ -21,11 +22,12 @@ func InitWebServer(mdls []gin.HandlerFunc, userHdl *handler.UserHandler) *gin.En
 }
 
 func InitMiddlewares(redisCmd redis.Cmdable) []gin.HandlerFunc {
+	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisCmd, time.Second, 100)
 	return []gin.HandlerFunc{
 		corsHdl(),
 		sessions.Sessions("SESS", memstore.NewStore(handler.SessAuthKey, handler.SessEncryptionKey)),
 		middleware.NewJWTLoginMiddlewareBuilder().Build(),
-		ratelimit.NewBuilder(redisCmd, time.Second, 100).Build(),
+		limitMiddleware.NewBuilder(limiter).Build(),
 	}
 }
 

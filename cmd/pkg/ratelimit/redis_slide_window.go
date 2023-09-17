@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	_ "embed"
 	"github.com/redis/go-redis/v9"
 	"time"
@@ -18,4 +19,17 @@ type RedisSlidingWindowLimiter struct {
 	rate int
 	// interval 内允许 rate 个请求
 	// 1s 内允许 3000 个请求
+}
+
+func NewRedisSlidingWindowLimiter(cmd redis.Cmdable, interval time.Duration, rate int) Limiter {
+	return &RedisSlidingWindowLimiter{
+		cmd:      cmd,
+		interval: interval,
+		rate:     rate,
+	}
+}
+
+func (r *RedisSlidingWindowLimiter) Limit(ctx context.Context, key string) (bool, error) {
+	return r.cmd.Eval(ctx, luaSlideWindow, []string{key},
+		r.interval.Microseconds(), time.Now().UnixMilli()).Bool()
 }
