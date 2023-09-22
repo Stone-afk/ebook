@@ -19,6 +19,7 @@ type UserRepository interface {
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
 	FindById(ctx context.Context, id int64) (domain.User, error)
+	FindByWechat(ctx context.Context, openID string) (domain.User, error)
 
 	// Update 更新数据，只有非 0 值才会更新
 	Update(ctx context.Context, u domain.User) error
@@ -49,17 +50,15 @@ func (ur *userRepository) Update(ctx context.Context, u domain.User) error {
 }
 
 func (ur *userRepository) Create(ctx context.Context, u domain.User) error {
-	return ur.dao.Insert(ctx, dao.User{
-		Email: sql.NullString{
-			String: u.Email,
-			Valid:  u.Email != "",
-		},
-		Phone: sql.NullString{
-			String: u.Phone,
-			Valid:  u.Phone != "",
-		},
-		Password: u.Password,
-	})
+	return ur.dao.Insert(ctx, ur.domainToEntity(u))
+}
+
+func (ur *userRepository) FindByWechat(ctx context.Context, openID string) (domain.User, error) {
+	u, err := ur.dao.FindByWechat(ctx, openID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return ur.entityToDomain(u), err
 }
 
 func (ur *userRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
@@ -99,6 +98,8 @@ func (ur *userRepository) entityToDomain(ue dao.User) domain.User {
 		Nickname: ue.Nickname.String,
 		AboutMe:  ue.AboutMe.String,
 		Birthday: birthday,
+		UnionID:  ue.WechatUnionID.String,
+		OpenID:   ue.WechatOpenID.String,
 		Ctime:    time.UnixMilli(ue.Ctime),
 	}
 }
@@ -127,5 +128,14 @@ func (ur *userRepository) domainToEntity(u domain.User) dao.User {
 			Valid:  u.AboutMe != "",
 		},
 		Password: u.Password,
+		WechatOpenID: sql.NullString{
+			String: u.OpenID,
+			Valid:  u.OpenID != "",
+		},
+		WechatUnionID: sql.NullString{
+			String: u.UnionID,
+			Valid:  u.UnionID != "",
+		},
+		Ctime: u.Ctime.UnixMilli(),
 	}
 }
