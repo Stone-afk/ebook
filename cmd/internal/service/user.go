@@ -16,6 +16,7 @@ var ErrInvalidUserOrPassword = errors.New("邮箱或者密码不正确")
 type UserService interface {
 	Signup(ctx context.Context, u domain.User) error
 	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
+	FindOrCreateByWechat(ctx context.Context, wechatInfo domain.WechatInfo) (domain.User, error)
 	Login(ctx context.Context, email, password string) (domain.User, error)
 	Profile(ctx context.Context, id int64) (domain.User, error)
 	// UpdateNonSensitiveInfo 更新非敏感数据
@@ -74,6 +75,20 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 	}
 	// 主从模式下，这里要从主库中读取，暂时我们不需要考虑
 	return svc.repo.FindByPhone(ctx, phone)
+}
+
+func (svc *userService) FindOrCreateByWechat(ctx context.Context, wechatInfo domain.WechatInfo) (domain.User, error) {
+	u, err := svc.repo.FindByWechat(ctx, wechatInfo.OpenID)
+	// 这是一种优化写法, 大部分人会命中这个分支
+	if err != repository.ErrUserNotFound {
+		return u, err
+	}
+	err = svc.repo.Create(ctx, u)
+	if err != nil && err != repository.ErrUserDuplicate {
+		return u, err
+	}
+	// 因为这里会遇到主从延迟的问题
+	return svc.repo.FindByWechat(ctx, wechatInfo.OpenID)
 }
 
 func (svc *userService) Login(ctx context.Context, email, password string) (domain.User, error) {

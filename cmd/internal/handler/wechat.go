@@ -2,7 +2,7 @@ package handler
 
 import (
 	"ebook/cmd/internal/service"
-	"ebook/cmd/internal/service/oauth2/wechat"
+	"ebook/cmd/internal/service/oauth2"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/lithammer/shortuuid/v4"
 	"net/http"
@@ -14,7 +14,7 @@ type WechatHandlerConfig struct {
 }
 
 type OAuth2WechatHandler struct {
-	svc     wechat.Service
+	svc     oauth2.Service
 	userSvc service.UserService
 
 	stateKey []byte
@@ -55,5 +55,40 @@ func (h *OAuth2WechatHandler) AuthURL(ctx *gin.Context) {
 }
 
 func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
+	code := ctx.Query("code")
+	err := h.verifyState(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "登录失败",
+		})
+		return
+	}
+	info, err := h.svc.VerifyCode(ctx, code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	// 这里怎么办？
+	// 从 userService 里面拿 uid
+	u, err := h.userSvc.FindOrCreateByWechat(ctx, info)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "OK",
+	})
+	// 验证微信的 code
+}
+
+func (h *OAuth2WechatHandler) verifyState(ctx *gin.Context) error {
 	panic("")
 }
