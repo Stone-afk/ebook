@@ -1,6 +1,7 @@
 package handler
 
 import (
+	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/internal/service/oauth2"
 	"errors"
@@ -19,10 +20,12 @@ type WechatHandlerConfig struct {
 }
 
 type OAuth2WechatHandler struct {
-	svc           oauth2.Service
-	userSvc       service.UserService
 	stateTokenKey []byte
-	cfg           WechatHandlerConfig
+
+	ijwt.Handler
+	svc     oauth2.Service
+	userSvc service.UserService
+	cfg     WechatHandlerConfig
 }
 
 type StateClaims struct {
@@ -38,12 +41,14 @@ func (h *OAuth2WechatHandler) RegisterRoutes(server *gin.Engine) {
 
 func NewOAuth2WechatHandler(svc oauth2.Service,
 	userSvc service.UserService,
+	jwtHdl ijwt.Handler,
 	cfg WechatHandlerConfig) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
 		svc:           svc,
 		userSvc:       userSvc,
 		stateTokenKey: []byte("95osj3fUD7foxmlYdDbncXz4VD2igvf1"),
 		cfg:           cfg,
+		Handler:       jwtHdl,
 	}
 }
 
@@ -108,7 +113,16 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 	}
 	// 这里怎么办？
 	// 从 userService 里面拿 uid
-	_, err = h.userSvc.FindOrCreateByWechat(ctx, info)
+	u, err := h.userSvc.FindOrCreateByWechat(ctx, info)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	err = h.SetLoginToken(ctx, u.Id)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
