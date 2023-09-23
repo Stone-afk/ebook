@@ -50,12 +50,22 @@ func (s *Service) AuthURL(ctx context.Context, state string) (string, error) {
 }
 
 func (s *Service) VerifyCode(ctx context.Context, code string) (domain.WechatInfo, error) {
-	const targetPattern = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code"
-	target := fmt.Sprintf(targetPattern, s.appId, s.appSecret, code)
+	//const targetPattern = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code"
+	//target := fmt.Sprintf(targetPattern, s.appId, s.appSecret, code)
+	// 这是另外一种写法
+	const baseURL = "https://api.weixin.qq.com/sns/oauth2/access_token"
+	queryParams := url.Values{}
+	queryParams.Set("appid", s.appId)
+	queryParams.Set("secret", s.appSecret)
+	queryParams.Set("code", code)
+	queryParams.Set("grant_type", "authorization_code")
+	target := baseURL + "?" + queryParams.Encode()
+
 	//resp, err := http.Get(target)
 	//req, err := http.NewRequest(http.MethodGet, target, nil)
 	// 会产生复制，性能极差，比如说你的 URL 很长
 	//req = req.WithContext(ctx)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
 		return domain.WechatInfo{}, err
