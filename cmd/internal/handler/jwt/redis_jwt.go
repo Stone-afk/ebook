@@ -1,11 +1,13 @@
 package jwt
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"strings"
 	"time"
 )
 
@@ -14,8 +16,36 @@ var (
 	RefreshTokenKey = []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvfx")
 )
 
+var _ Handler = &RedisJWTHandler{}
+
 type RedisJWTHandler struct {
 	cmd redis.Cmdable
+}
+
+func (h *RedisJWTHandler) ExtractToken(ctx *gin.Context) string {
+	// 在用 JWT 来校验
+	tokenHeader := ctx.GetHeader("Authorization")
+	//segs := strings.SplitN(tokenHeader, " ", 2)
+	segs := strings.Split(tokenHeader, " ")
+	if len(segs) != 2 {
+		return ""
+	}
+	return segs[1]
+}
+
+func (h *RedisJWTHandler) CheckSession(ctx *gin.Context, ssid string) error {
+	val, err := h.cmd.Exists(ctx, fmt.Sprintf("users:ssid:%s", ssid)).Result()
+	switch err {
+	case redis.Nil:
+		return nil
+	case nil:
+		if val == 0 {
+			return nil
+		}
+		return errors.New("session 已经无效了")
+	default:
+		return err
+	}
 }
 
 func (h *RedisJWTHandler) ClearToken(ctx *gin.Context) error {
