@@ -2,11 +2,12 @@ package handler
 
 import (
 	"ebook/cmd/internal/domain"
+	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"net/http"
 	"time"
 )
@@ -22,14 +23,16 @@ const (
 var _ handler = &UserHandler{}
 
 type UserHandler struct {
+	ijwt.Handler
 	svc              service.UserService
 	codeSvc          service.CodeService
 	emailRegexExp    *regexp.Regexp
 	passwordRegexExp *regexp.Regexp
 }
 
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService, jwthdl ijwt.Handler) *UserHandler {
 	return &UserHandler{
+		Handler:          jwthdl,
 		svc:              svc,
 		codeSvc:          codeSvc,
 		emailRegexExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
@@ -145,9 +148,10 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 		})
 		return
 	}
-
-	// 这边要怎么办呢？ 从哪来？
-	if err = h.setJWTToken(ctx, user.Id); err != nil {
+	// 用 uuid 来标识这一次会话
+	// 短信登录使用长 token
+	ssid := uuid.New().String()
+	if err = h.SetJWTToken(ctx, user.Id, ssid); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
@@ -205,30 +209,11 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "用户名或者密码不正确，请重试")
 		return
 	}
-	if err = h.setJWTToken(ctx, u.Id); err != nil {
+	if err = h.SetLoginToken(ctx, u.Id); err != nil {
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 	ctx.String(http.StatusOK, "登录成功")
-}
-
-func (h *UserHandler) setJWTToken(ctx *gin.Context, uid int64) error {
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, UserClaims{
-		Id:        uid,
-		UserAgent: ctx.GetHeader("User-Agent"),
-		RegisteredClaims: jwt.RegisteredClaims{
-			// 演示目的设置为一分钟过期
-			//ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
-			// 在压测的时候，要将过期时间设置更长一些
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
-		},
-	})
-	tokenStr, err := token.SignedString(JWTKey)
-	if err != nil {
-		return err
-	}
-	ctx.Header("x-jwt-token", tokenStr)
-	return nil
 }
 
 // SignUp 用户注册接口
@@ -317,9 +302,9 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "日期格式不对"})
 		return
 	}
-	uc := ctx.MustGet("user").(UserClaims)
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
 	err = h.svc.UpdateNonSensitiveInfo(ctx, domain.User{
-		Id:       uc.Id,
+		Id:       uc.UserId,
 		Nickname: req.Nickname,
 		AboutMe:  req.AboutMe,
 		Birthday: birthday,
@@ -357,8 +342,8 @@ func (h *UserHandler) ProfileJWT(ctx *gin.Context) {
 		Email string
 		Phone string
 	}
-	uc := ctx.MustGet("user").(UserClaims)
-	u, err := h.svc.Profile(ctx, uc.Id)
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
+	u, err := h.svc.Profile(ctx, uc.UserId)
 	if err != nil {
 		// 按照道理来说，这边 id 对应的数据肯定存在，所以要是没找到，
 		// 那就说明是系统出了问题。
