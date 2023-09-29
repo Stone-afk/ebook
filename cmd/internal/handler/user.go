@@ -55,12 +55,27 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	//ug.POST("/login", c.Login)
 	// JWT 机制
 	ug.POST("/login", h.LoginJWT)
+	ug.POST("/logout", h.LogoutJWT)
 	ug.POST("/edit", h.Edit)
 	//ug.GET("/profile", c.Profile)
 	ug.GET("/profile", h.ProfileJWT)
 	ug.POST("/login_sms", h.LoginSMS)
 	ug.POST("/login_sms/code/send", h.SendSMSLoginCode)
 	ug.POST("/refresh_token", h.RefreshToken)
+}
+
+func (h *UserHandler) LogoutJWT(ctx *gin.Context) {
+	err := h.ClearToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "退出登录失败",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "退出登录OK",
+	})
 }
 
 func (h *UserHandler) RefreshToken(ctx *gin.Context) {
