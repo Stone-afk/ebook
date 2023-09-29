@@ -7,6 +7,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"net/http"
 	"time"
@@ -59,6 +60,36 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.GET("/profile", h.ProfileJWT)
 	ug.POST("/login_sms", h.LoginSMS)
 	ug.POST("/login_sms/code/send", h.SendSMSLoginCode)
+	ug.POST("/refresh_token", h.RefreshToken)
+}
+
+func (h *UserHandler) RefreshToken(ctx *gin.Context) {
+	// 假定长 token 也放在这里
+	tokenStr := h.ExtractToken(ctx)
+	var rc ijwt.RefreshClaims
+	token, err := jwt.ParseWithClaims(tokenStr, &rc, func(token *jwt.Token) (interface{}, error) {
+		return ijwt.RefreshTokenKey, nil
+	})
+	// 这边要保持和登录校验一直的逻辑，即返回 401 响应
+	if err != nil || token == nil || !token.Valid {
+		ctx.JSON(http.StatusUnauthorized, Result{Code: 4, Msg: "请登录"})
+		return
+	}
+	// 校验 ssid
+	err = h.CheckSession(ctx, rc.Ssid)
+	if err != nil {
+		// 系统错误或者用户已经主动退出登录了
+		// 这里也可以考虑说，如果在 Redis 已经崩溃的时候，
+		// 就不要去校验是不是已经主动退出登录了。
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	err = h.SetJWTToken(ctx, rc.UserId, rc.Ssid)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, Result{Code: 4, Msg: "请登录"})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{Msg: "刷新成功"})
 }
 
 // SendSMSLoginCode 发送短信验证码
