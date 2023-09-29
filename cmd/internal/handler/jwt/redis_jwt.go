@@ -22,6 +22,12 @@ type RedisJWTHandler struct {
 	cmd redis.Cmdable
 }
 
+func NewRedisJWTHandler(cmd redis.Cmdable) Handler {
+	return &RedisJWTHandler{
+		cmd: cmd,
+	}
+}
+
 func (h *RedisJWTHandler) ExtractToken(ctx *gin.Context) string {
 	// Authorization 头部
 	// 得到的格式 Bearer token
