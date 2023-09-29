@@ -4,6 +4,7 @@ package main
 
 import (
 	"ebook/cmd/internal/handler"
+	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
@@ -32,8 +33,11 @@ func InitWebServer() *gin.Engine {
 
 		// 直接基于内存实现
 		ioc.InitSMSService,
-		handler.NewUserHandler,
 
+		handler.NewUserHandler,
+		handler.NewOAuth2WechatHandler,
+		ijwt.NewRedisJWTHandler,
+		handler.NewUserHandler,
 		// 你中间件呢？
 		// 你注册路由呢？
 		// 你这个地方没有用到前面的任何东西
