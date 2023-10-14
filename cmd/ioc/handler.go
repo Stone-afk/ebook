@@ -5,6 +5,7 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/handler/middleware"
 	limitMiddleware "ebook/cmd/pkg/ginx/middleware/ratelimit"
+	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/ratelimit"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -22,7 +23,7 @@ func InitWebServer(mdls []gin.HandlerFunc, userHdl *handler.UserHandler) *gin.En
 	return server
 }
 
-func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler) []gin.HandlerFunc {
+func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler, l logger.Logger) []gin.HandlerFunc {
 	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisCmd, time.Second, 100)
 	return []gin.HandlerFunc{
 		corsHdl(),

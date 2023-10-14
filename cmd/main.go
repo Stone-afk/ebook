@@ -20,7 +20,7 @@ func main() {
 	//server := initServer()
 	//u.RegisterRoutes(server)
 	initViperWatch()
-	initLogger()
+	//initLogger()
 	keys := viper.AllKeys()
 	println(keys)
 	setting := viper.AllSettings()

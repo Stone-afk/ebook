@@ -6,12 +6,12 @@ import (
 )
 
 type zapLogger struct {
-	l *zap.Logger
+	log *zap.Logger
 }
 
-func NewZapLogger(l *zap.Logger) logger.Logger {
+func NewZapLogger(log *zap.Logger) logger.Logger {
 	return &zapLogger{
-		l: l,
+		log: log,
 	}
 }
 
@@ -24,17 +24,17 @@ func (z *zapLogger) toZapFields(args []logger.Field) []zap.Field {
 }
 
 func (z *zapLogger) Debug(msg string, args ...logger.Field) {
-	z.l.Debug(msg, z.toZapFields(args)...)
+	z.log.Debug(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Info(msg string, args ...logger.Field) {
-	z.l.Info(msg, z.toZapFields(args)...)
+	z.log.Info(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Warn(msg string, args ...logger.Field) {
-	z.l.Warn(msg, z.toZapFields(args)...)
+	z.log.Warn(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Error(msg string, args ...logger.Field) {
-	z.l.Error(msg, z.toZapFields(args)...)
+	z.log.Error(msg, z.toZapFields(args)...)
 }
