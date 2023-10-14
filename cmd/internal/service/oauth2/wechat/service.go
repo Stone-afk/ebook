@@ -4,6 +4,7 @@ import (
 	"context"
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/service/oauth2"
+	"ebook/cmd/pkg/logger"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,6 +20,7 @@ type Service struct {
 	appSecret string
 	client    *http.Client
 	//cmd       redis.Cmdable
+	l logger.Logger
 }
 
 type Result struct {
@@ -34,11 +36,12 @@ type Result struct {
 	UnionID string `json:"unionid"`
 }
 
-func NewService(appId string, appSecret string, client *http.Client) oauth2.Service {
+func NewService(appId string, appSecret string, client *http.Client, l logger.Logger) oauth2.Service {
 	return &Service{
 		appId:     appId,
 		appSecret: appSecret,
 		client:    client,
+		l:         l,
 	}
 }
 

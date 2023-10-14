@@ -2,7 +2,9 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"ebook/cmd/internal/domain"
+	"ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
 	svcmocks "ebook/cmd/internal/service/mocks"
 	"errors"
@@ -152,7 +154,7 @@ func TestUserHandler_SignUp(t *testing.T) {
 			defer ctrl.Finish()
 			server := gin.Default()
 			// 用不上 codeSvc
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil)
 			h.RegisterRoutes(server)
 			req, err := http.NewRequest(
 				http.MethodPost, "/users/signup",
@@ -177,12 +179,12 @@ func TestNil(t *testing.T) {
 }
 
 func testTypeAssert(c any) {
-	_, ok := c.(*UserClaims)
+	_, ok := c.(jwt.UserClaims)
 	println(ok)
 }
 
 func TestEncrypt(t *testing.T) {
-	_ = NewUserHandler(nil, nil)
+	_ = NewUserHandler(nil, nil, nil)
 	password := "hello#world123"
 	encrypted, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -190,4 +192,19 @@ func TestEncrypt(t *testing.T) {
 	}
 	err = bcrypt.CompareHashAndPassword(encrypted, []byte(password))
 	assert.NoError(t, err)
+}
+
+func TestMock(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	usersvc := svcmocks.NewMockUserService(ctrl)
+	usersvc.EXPECT().Signup(gomock.Any(), gomock.Any()).
+		Return(errors.New("mock error"))
+	//usersvc.EXPECT().SignUp(gomock.Any(), domain.User{
+	//	Email: "124@qq.com",
+	//}).Return(errors.New("mock error"))
+	err := usersvc.Signup(context.Background(), domain.User{
+		Email: "123@qq.com",
+	})
+	t.Log(err)
 }

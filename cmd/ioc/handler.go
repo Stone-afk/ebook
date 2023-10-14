@@ -1,32 +1,48 @@
 package ioc
 
 import (
+	"context"
 	"ebook/cmd/internal/handler"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/handler/middleware"
+	loggerMiddleware "ebook/cmd/pkg/ginx/middleware/logger"
 	limitMiddleware "ebook/cmd/pkg/ginx/middleware/ratelimit"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/ratelimit"
+	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 	"strings"
 	"time"
 )
 
-func InitWebServer(mdls []gin.HandlerFunc, userHdl *handler.UserHandler) *gin.Engine {
+func InitWebServer(mdls []gin.HandlerFunc, userHdl *handler.UserHandler,
+	oauth2WechatHdl *handler.OAuth2WechatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
+	oauth2WechatHdl.RegisterRoutes(server)
 	return server
 }
 
 func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler, l logger.Logger) []gin.HandlerFunc {
 	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisCmd, time.Second, 100)
+	bd := loggerMiddleware.NewBuilder(func(ctx context.Context, al *loggerMiddleware.AccessLog) {
+		l.Debug("HTTP请求", logger.Field{Key: "AccessLog", Value: al})
+	})
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		ok := viper.GetBool("web.logReqBody")
+		bd.AllowReqBody(ok)
+		ok = viper.GetBool("web.logRespBody")
+		bd.AllowRespBody(ok)
+	})
 	return []gin.HandlerFunc{
 		corsHdl(),
+		bd.Build(),
 		sessions.Sessions("SESS", memstore.NewStore(handler.SessAuthKey, handler.SessEncryptionKey)),
 		middleware.NewJWTLoginMiddlewareBuilder(jwtHdl).Build(),
 		limitMiddleware.NewBuilder(limiter).Build(),

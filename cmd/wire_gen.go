@@ -8,6 +8,7 @@ package main
 
 import (
 	"ebook/cmd/internal/handler"
+	"ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
@@ -20,17 +21,22 @@ import (
 
 func InitWebServer() *gin.Engine {
 	cmdable := ioc.InitRedis()
-	v := ioc.InitMiddlewares(cmdable)
+	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
+	logger := ioc.InitLogger()
+	v := ioc.InitMiddlewares(cmdable, jwtHandler, logger)
 	db := ioc.InitDB()
 	userDAO := dao.NewGORMUserDAO(db)
 	userCache := cache.NewRedisUserCache(cmdable)
 	userRepository := repository.NewUserRepository(userDAO, userCache)
-	userService := service.NewUserService(userRepository)
+	userService := service.NewUserService(userRepository, logger)
 	codeCache := cache.NewCodeCache(cmdable)
 	codeRepository := repository.NewCodeRepository(codeCache)
 	smsService := ioc.InitSMSService(cmdable)
 	codeService := service.NewCodeService(codeRepository, smsService)
-	userHandler := handler.NewUserHandler(userService, codeService)
-	engine := ioc.InitWebServer(v, userHandler)
+	userHandler := handler.NewUserHandler(userService, codeService, jwtHandler)
+	oauth2Service := ioc.InitWechatService(logger)
+	wechatHandlerConfig := ioc.NewWechatHandlerConfig()
+	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(oauth2Service, userService, jwtHandler, wechatHandlerConfig)
+	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler)
 	return engine
 }
