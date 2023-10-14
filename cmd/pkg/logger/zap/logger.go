@@ -24,17 +24,17 @@ func (z *zapLogger) toZapFields(args []logger.Field) []zap.Field {
 }
 
 func (z *zapLogger) Debug(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Debug(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Info(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Info(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Warn(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Warn(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Error(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Error(msg, z.toZapFields(args)...)
 }
