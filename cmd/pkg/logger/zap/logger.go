@@ -15,18 +15,26 @@ func NewZapLogger(l *zap.Logger) logger.Logger {
 	}
 }
 
+func (z *zapLogger) toZapFields(args []logger.Field) []zap.Field {
+	res := make([]zap.Field, 0, len(args))
+	for _, arg := range args {
+		res = append(res, zap.Any(arg.Key, arg.Value))
+	}
+	return res
+}
+
 func (z *zapLogger) Debug(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Debug(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Info(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Info(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Warn(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Warn(msg, z.toZapFields(args)...)
 }
 
 func (z *zapLogger) Error(msg string, args ...logger.Field) {
-	panic("")
+	z.l.Error(msg, z.toZapFields(args)...)
 }
