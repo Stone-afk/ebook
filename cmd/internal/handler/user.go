@@ -23,6 +23,9 @@ const (
 
 var _ handler = &UserHandler{}
 
+// 这个更优雅
+var _ handler = (*UserHandler)(nil)
+
 type UserHandler struct {
 	ijwt.Handler
 	svc              service.UserService
