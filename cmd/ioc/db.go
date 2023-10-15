@@ -2,6 +2,7 @@ package ioc
 
 import (
 	"ebook/cmd/internal/repository/dao"
+	"ebook/cmd/pkg/logger"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -76,4 +77,20 @@ func InitDB() *gorm.DB {
 		panic(err)
 	}
 	return db
+}
+
+type gormLoggerFunc func(msg string, fields ...logger.Field)
+
+func (g gormLoggerFunc) Printf(msg string, args ...interface{}) {
+	g(msg, logger.Field{Key: "args", Value: args})
+}
+
+type DoSomething interface {
+	DoABC() string
+}
+
+type DoSomethingFunc func() string
+
+func (d DoSomethingFunc) DoABC() string {
+	return d()
 }
