@@ -31,11 +31,11 @@ func InitWebServer() *gin.Engine {
 
 		service.NewUserService,
 		service.NewCodeService,
-
-		// 直接基于内存实现
 		ioc.InitSMSService,
+		ioc.InitWechatService,
 
-		handler.NewUserHandler,
+		ioc.NewWechatHandlerConfig,
+
 		handler.NewOAuth2WechatHandler,
 		ijwt.NewRedisJWTHandler,
 		handler.NewUserHandler,

@@ -5,6 +5,7 @@ import (
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository"
 	repomocks "ebook/cmd/internal/repository/mocks"
+	"ebook/cmd/pkg/logger/nop"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -112,7 +113,7 @@ func Test_userService_Login(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			// 具体的测试代码
-			svc := NewUserService(tc.mock(ctrl))
+			svc := NewUserService(tc.mock(ctrl), nop.NewNopLogger())
 			u, err := svc.Login(context.Background(), tc.email, tc.password)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantUser, u)

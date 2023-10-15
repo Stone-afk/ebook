@@ -8,5 +8,6 @@ import (
 
 func InitSMSService(cmd redis.Cmdable) sms.Service {
 	// 换内存，还是换别的
+	// memory 直接基于内存实现
 	return memory.NewService()
 }

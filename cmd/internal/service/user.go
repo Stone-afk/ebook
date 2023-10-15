@@ -4,6 +4,7 @@ import (
 	"context"
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository"
+	"ebook/cmd/pkg/logger"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,11 +27,13 @@ type UserService interface {
 
 type userService struct {
 	repo repository.UserRepository
+	l    logger.Logger
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
+func NewUserService(repo repository.UserRepository, l logger.Logger) UserService {
 	return &userService{
 		repo: repo,
+		l:    l,
 	}
 }
 
@@ -65,6 +68,10 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 	if err != repository.ErrUserNotFound {
 		return u, err
 	}
+	// 这里，把 phone 脱敏之后打出来
+	//zap.L().Info("用户未注册", zap.String("phone", phone))
+	//svc.logger.Info("用户未注册", zap.String("phone", phone))
+	svc.l.Info("用户未注册", logger.String("phone", phone))
 	// 要执行注册
 	err = svc.repo.Create(ctx, domain.User{
 		Phone: phone,
