@@ -4,6 +4,7 @@ package startup
 
 import (
 	"ebook/cmd/internal/handler"
+	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao"
@@ -12,6 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 )
+
+var thirdProvider = wire.NewSet(InitRedis, InitTestDB, InitLogger)
+var userSvcProvider = wire.NewSet(
+	dao.NewGORMUserDAO,
+	cache.NewRedisUserCache,
+	repository.NewUserRepository,
+	service.NewUserService)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(
@@ -43,4 +51,14 @@ func InitWebServer() *gin.Engine {
 	)
 
 	return new(gin.Engine)
+}
+
+func InitUserSvc() service.UserService {
+	wire.Build(thirdProvider, userSvcProvider)
+	return service.NewUserService(nil, nil)
+}
+
+func InitJwtHandler() ijwt.Handler {
+	wire.Build(thirdProvider, ijwt.NewRedisJWTHandler)
+	return ijwt.NewRedisJWTHandler(nil)
 }
