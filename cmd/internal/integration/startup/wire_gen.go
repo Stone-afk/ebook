@@ -10,7 +10,7 @@ import (
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
-	"ebook/cmd/internal/repository/dao"
+	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
 	"github.com/gin-gonic/gin"
@@ -22,7 +22,7 @@ func InitWebServer() *gin.Engine {
 	cmdable := ioc.InitRedis()
 	v := ioc.InitMiddlewares(cmdable)
 	db := ioc.InitDB()
-	userDAO := dao.NewGORMUserDAO(db)
+	userDAO := user.NewGORMUserDAO(db)
 	userCache := cache.NewRedisUserCache(cmdable)
 	userRepository := repository.NewUserRepository(userDAO, userCache)
 	userService := service.NewUserService(userRepository)

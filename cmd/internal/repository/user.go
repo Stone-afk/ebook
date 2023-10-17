@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository/cache"
-	"ebook/cmd/internal/repository/dao"
+	"ebook/cmd/internal/repository/dao/user"
 	"time"
 )
 
-var ErrUserDuplicate = dao.ErrUserDuplicate
-var ErrUserNotFound = dao.ErrDataNotFound
+var ErrUserDuplicate = user.ErrUserDuplicate
+var ErrUserNotFound = user.ErrDataNotFound
 
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/user.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/user.mock.go
 
@@ -27,13 +27,13 @@ type UserRepository interface {
 
 // UserRepository 使用了缓存的 repository 实现
 type userRepository struct {
-	dao   dao.UserDAO
+	dao   user.UserDAO
 	cache cache.UserCache
 }
 
 // NewUserRepository 也说明了 CachedUserRepository 的特性
 // 会从缓存和数据库中去尝试获得
-func NewUserRepository(d dao.UserDAO,
+func NewUserRepository(d user.UserDAO,
 	c cache.UserCache) UserRepository {
 	return &userRepository{
 		dao:   d,
@@ -85,7 +85,7 @@ func (ur *userRepository) FindById(ctx context.Context, id int64) (domain.User, 
 	return u, nil
 }
 
-func (ur *userRepository) entityToDomain(ue dao.User) domain.User {
+func (ur *userRepository) entityToDomain(ue user.User) domain.User {
 	var birthday time.Time
 	if ue.Birthday.Valid {
 		birthday = time.UnixMilli(ue.Birthday.Int64)
@@ -104,8 +104,8 @@ func (ur *userRepository) entityToDomain(ue dao.User) domain.User {
 	}
 }
 
-func (ur *userRepository) domainToEntity(u domain.User) dao.User {
-	return dao.User{
+func (ur *userRepository) domainToEntity(u domain.User) user.User {
+	return user.User{
 		Id: u.Id,
 		Email: sql.NullString{
 			String: u.Email,

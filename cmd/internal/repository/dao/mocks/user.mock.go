@@ -6,7 +6,7 @@ package daomocks
 
 import (
 	context "context"
-	dao "ebook/cmd/internal/repository/dao"
+	dao "ebook/cmd/internal/repository/dao/user"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
