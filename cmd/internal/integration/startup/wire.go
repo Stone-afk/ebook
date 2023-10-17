@@ -7,7 +7,7 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
-	"ebook/cmd/internal/repository/dao"
+	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
 	"github.com/gin-gonic/gin"
@@ -16,7 +16,7 @@ import (
 
 var thirdProvider = wire.NewSet(InitRedis, InitTestDB, InitLogger)
 var userSvcProvider = wire.NewSet(
-	dao.NewGORMUserDAO,
+	user.NewGORMUserDAO,
 	cache.NewRedisUserCache,
 	repository.NewUserRepository,
 	service.NewUserService)
@@ -27,7 +27,7 @@ func InitWebServer() *gin.Engine {
 		ioc.InitDB, ioc.InitRedis,
 
 		// 初始化 DAO
-		dao.NewGORMUserDAO,
+		user.NewGORMUserDAO,
 
 		cache.NewRedisUserCache,
 		cache.NewCodeCache,

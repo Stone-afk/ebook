@@ -7,7 +7,7 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
-	"ebook/cmd/internal/repository/dao"
+	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
 	"github.com/gin-gonic/gin"
@@ -21,7 +21,7 @@ func InitWebServer() *gin.Engine {
 		ioc.InitLogger,
 
 		// 初始化 DAO
-		dao.NewGORMUserDAO,
+		user.NewGORMUserDAO,
 
 		cache.NewRedisUserCache,
 		cache.NewCodeCache,
