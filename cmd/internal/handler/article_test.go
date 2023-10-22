@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"ebook/cmd/internal/domain"
+	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 var _ handler = (*ArticleHandler)(nil)
@@ -12,6 +15,17 @@ type ArticleReq struct {
 	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
+}
+
+func (req ArticleReq) toDomain(userId int64) domain.Article {
+	return domain.Article{
+		Id:      req.Id,
+		Title:   req.Title,
+		Content: req.Content,
+		Author: domain.Author{
+			Id: userId,
+		},
+	}
 }
 
 type ArticleHandler struct {
@@ -34,8 +48,43 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	//g.POST("/")
 	// g.DELETE("/a_id")
 	g.POST("/edit", h.Edit)
+	g.POST("/publish", h.Publish)
+}
+
+func (h *ArticleHandler) Publish(ctx *gin.Context) {
+	// var req ArticleReq
 }
 
 func (h *ArticleHandler) Edit(ctx *gin.Context) {
-
+	var req ArticleReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	c := ctx.MustGet("claims")
+	claims, ok := c.(*ijwt.UserClaims)
+	if !ok {
+		// 你可以考虑监控住这里
+		//ctx.AbortWithStatus(http.StatusUnauthorized)
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		h.l.Error("未发现用户的 session 信息")
+		return
+	}
+	// 检测输入，跳过这一步
+	// 调用 svc 的代码
+	id, err := h.svc.Save(ctx, req.toDomain(claims.UserId))
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		// 打日志？
+		h.l.Error("保存帖子失败", logger.Error(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Data: id,
+	})
 }
