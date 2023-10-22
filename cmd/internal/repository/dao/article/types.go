@@ -20,7 +20,7 @@ type ArticleReaderDAO interface {
 	// 这个要求 Reader 和 Author 是不同库
 	Upsert(ctx context.Context, art Article) error
 	// UpsertV2 版本用于同库不同表
-	// UpsertV2(ctx context.Context, art PublishedArticle) error
+	UpsertV2(ctx context.Context, art PublishedArticle) error
 }
 
 // ArticleAuthorDAO 用于演示代表
