@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 const (
 	// ArticleStatusUnknown 为了避免零值之类的问题
 	ArticleStatusUnknown ArticleStatus = iota
@@ -17,6 +19,8 @@ type Article struct {
 	// Author 要从用户来
 	Author Author
 	Status ArticleStatus
+	Ctime  time.Time
+	Utime  time.Time
 }
 
 // Author 在帖子这个领域内，是一个值对象
@@ -26,6 +30,11 @@ type Author struct {
 }
 
 type ArticleStatus uint8
+
+//go:inline
+func (s ArticleStatus) ToUint8() uint8 {
+	return uint8(s)
+}
 
 // ArticleStatusV1 如果你的状态很复杂，有很多行为（就是你要搞很多方法），状态里面需要一些额外字段
 // 就用这个版本

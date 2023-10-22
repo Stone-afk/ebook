@@ -48,6 +48,11 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	//g.POST("/")
 	// g.DELETE("/a_id")
 	g.POST("/edit", h.Edit)
+	g.POST("/publish", h.Publish)
+}
+
+func (h *ArticleHandler) Publish(ctx *gin.Context) {
+	// var req ArticleReq
 }
 
 func (h *ArticleHandler) Edit(ctx *gin.Context) {
