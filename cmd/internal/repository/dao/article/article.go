@@ -105,16 +105,17 @@ func (dao *GORMArticleDAO) UpdateById(ctx context.Context, art Article) error {
 			"status":  art.Status,
 			"utime":   art.Utime,
 		})
+	err := res.Error
+	if err != nil {
+		return err
+	}
 	// 你要不要检查真的更新了没？
 	// res.RowsAffected // 更新行数
-	if res.Error != nil {
-		return res.Error
-	}
 	if res.RowsAffected == 0 {
 		//dangerousDBOp.Count(1)
 		// 补充一点日志
 		return fmt.Errorf("更新失败，可能是创作者非法 id %d, author_id %d",
 			art.Id, art.AuthorId)
 	}
-	return res.Error
+	return nil
 }

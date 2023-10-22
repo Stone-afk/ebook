@@ -54,12 +54,64 @@ func NewArticleRepositoryV2(db *gorm.DB, l logger.Logger) ArticleRepository {
 	}
 }
 
-func (repo *articleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
-	id, err := repo.dao.Sync(ctx, repo.toEntity(art))
+func (repo *articleRepository) SyncV2(ctx context.Context, art domain.Article) (int64, error) {
+	tx := repo.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return 0, tx.Error
+	}
+	// 直接 defer Rollback
+	// 如果我们后续 Commit 了，这里会得到一个错误，但是没关系
+	defer tx.Rollback()
+	authorDAO := article.NewGORMArticleDAO(tx)
+	readerDAO := article.NewGORMArticleReaderDAO(tx)
+
+	// 下面代码和 SyncV1 一模一样
+	artn := repo.toEntity(art)
+	var (
+		id  = art.Id
+		err error
+	)
+	if id == 0 {
+		id, err = authorDAO.Insert(ctx, artn)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		err = authorDAO.UpdateById(ctx, artn)
+	}
 	if err != nil {
 		return 0, err
 	}
-	return id, nil
+	artn.Id = id
+	err = readerDAO.UpsertV2(ctx, article.PublishedArticle(artn))
+	if err != nil {
+		// 依赖于 defer 来 rollback
+		return 0, err
+	}
+	tx.Commit()
+	return artn.Id, nil
+}
+
+func (repo *articleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
+	artn := repo.toEntity(art)
+	var (
+		id  = art.Id
+		err error
+	)
+	if id == 0 {
+		id, err = repo.authorDAO.Create(ctx, artn)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		err = repo.authorDAO.UpdateById(ctx, artn)
+	}
+	if err != nil {
+		return 0, err
+	}
+	artn.Id = id
+	err = repo.readerDAO.Upsert(ctx, artn)
+	return id, err
 }
 
 func (repo *articleRepository) Sync(ctx context.Context, art domain.Article) (int64, error) {
