@@ -7,6 +7,7 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
+	"ebook/cmd/internal/repository/dao/article"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
@@ -20,37 +21,49 @@ var userSvcProvider = wire.NewSet(
 	cache.NewRedisUserCache,
 	repository.NewUserRepository,
 	service.NewUserService)
+var articleSvcProvider = wire.NewSet(
+	article.NewGORMArticleDAO,
+	repository.NewArticleRepository,
+	service.NewArticleService,
+)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(
-		// 最基础的第三方依赖
-		ioc.InitDB, ioc.InitRedis,
+		thirdProvider,
+		userSvcProvider,
+		articleSvcProvider,
 
-		// 初始化 DAO
-		user.NewGORMUserDAO,
-
-		cache.NewRedisUserCache,
 		cache.NewCodeCache,
-
-		repository.NewUserRepository,
 		repository.NewCodeRepository,
+		// service 部分
+		// 集成测试我们显式指定使用内存实现
+		ioc.InitSMSService,
 
-		service.NewUserService,
+		InitPhantomWechatService,
 		service.NewCodeService,
 
-		// 直接基于内存实现
-		ioc.InitSMSService,
-		handler.NewUserHandler,
+		ioc.NewWechatHandlerConfig,
 
-		// 你中间件呢？
-		// 你注册路由呢？
-		// 你这个地方没有用到前面的任何东西
-		//gin.Default,
+		handler.NewOAuth2WechatHandler,
+		ijwt.NewRedisJWTHandler,
+		handler.NewUserHandler,
+		handler.NewArticleHandler,
+
 		ioc.InitMiddlewares,
 		ioc.InitWebServer,
 	)
+	// 随便返回一个
+	return gin.Default()
+}
 
-	return new(gin.Engine)
+func InitArticleHandler(dao article.ArticleDAO) *handler.ArticleHandler {
+	wire.Build(thirdProvider,
+		//userSvcProvider,
+		repository.NewArticleRepository,
+		service.NewArticleService,
+		handler.NewArticleHandler,
+	)
+	return new(handler.ArticleHandler)
 }
 
 func InitUserSvc() service.UserService {
