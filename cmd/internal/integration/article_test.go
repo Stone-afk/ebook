@@ -45,6 +45,30 @@ func (s *ArticleTestSuite) TearDownTest() {
 	assert.NoError(s.T(), err)
 }
 
+func (s *ArticleTestSuite) TestArticle_Publish() {
+	t := s.T()
+	testCases := []struct {
+		name string
+		// 要提前准备数据
+		before func(t *testing.T)
+		// 验证并且删除数据
+		after func(t *testing.T)
+		req   Article
+
+		// 预期响应
+		wantCode   int
+		wantResult Result[int64]
+	}{
+		{},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+		})
+	}
+
+}
+
 func (s *ArticleTestSuite) TestArticleHandler_Edit() {
 	t := s.T()
 	testCases := []struct {
