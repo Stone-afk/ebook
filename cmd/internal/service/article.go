@@ -9,6 +9,7 @@ import (
 
 type ArticleService interface {
 	Save(ctx context.Context, art domain.Article) (int64, error)
+	Withdraw(ctx context.Context, art domain.Article) error
 	Publish(ctx context.Context, art domain.Article) (int64, error)
 	PublishV1(ctx context.Context, art domain.Article) (int64, error)
 }
@@ -40,6 +41,11 @@ func NewArticleServiceV1(
 		readerRepo: readerRepo,
 		log:        l,
 	}
+}
+
+func (svc *articleService) Withdraw(ctx context.Context, art domain.Article) error {
+	// art.Status = domain.ArticleStatusPrivate 然后直接把整个 art 往下传
+	return svc.repo.SyncStatus(ctx, art.Id, art.Author.Id, domain.ArticleStatusPrivate)
 }
 
 func (svc *articleService) Save(ctx context.Context, art domain.Article) (int64, error) {
