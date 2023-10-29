@@ -11,6 +11,8 @@ import (
 // repository 还是要用来操作缓存和DAO
 // 事务概念应该在 DAO 这一层
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/article.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/article.mock.go
+
 type ArticleRepository interface {
 	Create(ctx context.Context, art domain.Article) (int64, error)
 	Update(ctx context.Context, art domain.Article) error
