@@ -6,6 +6,8 @@ import (
 	"ebook/cmd/internal/repository/dao/article"
 )
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/article_reader.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/article_reader.mock.go
+
 type ArticleReaderRepository interface {
 	Save(ctx context.Context, art domain.Article) error
 }
