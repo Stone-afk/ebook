@@ -6,6 +6,8 @@ import (
 	"ebook/cmd/internal/repository/dao/article"
 )
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/article_author.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/article_author.mock.go
+
 // ArticleAuthorRepository 演示在 service 层面上分流
 type ArticleAuthorRepository interface {
 	Create(ctx context.Context, art domain.Article) (int64, error)
