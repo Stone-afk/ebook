@@ -64,17 +64,16 @@ func (dao *GORMArticleDAO) SyncStatus(ctx context.Context, authorId, id int64, s
 		if res.Error != nil {
 			return res.Error
 		}
-		// ????? 这个情况可能发生吗
+		// 更新了别的用户
 		if res.RowsAffected != 1 {
 			return ErrPossibleIncorrectAuthor
 		}
-		tx.Model(&PublishedArticle{}).
+		res = tx.Model(&PublishedArticle{}).
 			Where("id=? AND author_id = ?", id, authorId).
 			Update("status", status)
 		if res.Error != nil {
 			return res.Error
 		}
-		// ????? 这个情况可能发生吗
 		if res.RowsAffected != 1 {
 			return ErrPossibleIncorrectAuthor
 		}

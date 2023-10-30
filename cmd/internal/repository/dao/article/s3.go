@@ -1,12 +1,16 @@
 package article
 
 import (
+	"bytes"
 	"context"
 	"ebook/cmd/internal/domain"
 	_ "github.com/aws/aws-sdk-go"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/ecodeclub/ekit"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"strconv"
+	"time"
 )
 
 var statusPrivate = domain.ArticleStatusPrivate.ToUint8()
@@ -34,11 +38,96 @@ func NewOssDAO(oss *s3.S3, db *gorm.DB) ArticleDAO {
 }
 
 func (dao *S3DAO) Sync(ctx context.Context, art Article) (int64, error) {
-	panic("implement me")
+	// 保存制作库
+	// 保存线上库，并且把 content 上传到 OSS
+	//
+	var (
+		id = art.Id
+	)
+	// 制作库流量不大，并发不高，你就保存到数据库就可以
+	// 当然，有钱或者体量大，就还是考虑 OSS
+	err := dao.db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		now := time.Now().UnixMilli()
+		// 制作库
+		txDAO := NewGORMArticleDAO(tx)
+		if id == 0 {
+			id, err = txDAO.Insert(ctx, art)
+		} else {
+			err = txDAO.UpdateById(ctx, art)
+		}
+		if err != nil {
+			return err
+		}
+		art.Id = id
+		publishArt := PublishedArticleV1{
+			Id:       art.Id,
+			Title:    art.Title,
+			AuthorId: art.AuthorId,
+			Status:   art.Status,
+			Ctime:    now,
+			Utime:    now,
+		}
+		return tx.Clauses(clause.OnConflict{
+			// ID 冲突的时候。实际上，在 MYSQL 里面你写不写都可以
+			Columns: []clause.Column{{Name: "id"}},
+			// 这里没有更新 Content，
+			//
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"title":  publishArt.Title,
+				"status": publishArt.Status,
+				"utime":  now,
+			}),
+		}).Create(&publishArt).Error
+	})
+	// 说明保存到数据库的时候失败了
+	if err != nil {
+		return 0, err
+	}
+	// 接下来就是保存到 OSS 里面
+	// 你要有监控，你要有重试，你要有补偿机制
+	_, err = dao.oss.PutObjectWithContext(ctx, &s3.PutObjectInput{
+		Bucket:      dao.bucket,
+		Key:         ekit.ToPtr[string](strconv.FormatInt(art.Id, 10)),
+		Body:        bytes.NewReader([]byte(art.Content)),
+		ContentType: ekit.ToPtr[string]("text/plain;charset=utf-8"),
+	})
+	return id, err
 }
 
 func (dao *S3DAO) SyncStatus(ctx context.Context, authorId, id int64, status uint8) error {
-	panic("implement me")
+	err := dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&Article{}).
+			Where("id=? AND author_id = ?", id, authorId).
+			Update("status", status)
+		if res.Error != nil {
+			return res.Error
+		}
+		// 更新了别的用户
+		if res.RowsAffected != 1 {
+			return ErrPossibleIncorrectAuthor
+		}
+		res = tx.Model(&PublishedArticle{}).
+			Where("id=? AND author_id = ?", id, authorId).
+			Update("status", status)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected != 1 {
+			return ErrPossibleIncorrectAuthor
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if status == statusPrivate {
+		_, err = dao.oss.DeleteObjectWithContext(ctx, &s3.DeleteObjectInput{
+			Bucket: dao.bucket,
+			Key:    ekit.ToPtr[string](strconv.FormatInt(id, 10)),
+		})
+	}
+	return err
 }
 
 func (dao *S3DAO) Insert(ctx context.Context, art Article) (int64, error) {
