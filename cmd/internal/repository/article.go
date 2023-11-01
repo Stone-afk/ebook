@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"ebook/cmd/internal/domain"
+	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
 	"ebook/cmd/pkg/logger"
+	"github.com/ecodeclub/ekit/slice"
 	"gorm.io/gorm"
 )
 
@@ -20,10 +22,12 @@ type ArticleRepository interface {
 	Sync(ctx context.Context, art domain.Article) (int64, error)
 	// SyncStatus 仅仅同步状态
 	SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error
+	List(ctx context.Context, author int64, offset, limit int) ([]domain.Article, error)
 }
 
 type articleRepository struct {
-	dao article.ArticleDAO
+	dao   article.ArticleDAO
+	cache cache.ArticleCache
 
 	// SyncV1 用
 	authorDAO article.ArticleAuthorDAO
@@ -53,6 +57,57 @@ func NewArticleRepositoryV2(db *gorm.DB, l logger.Logger) ArticleRepository {
 	return &articleRepository{
 		db: db,
 		l:  l,
+	}
+}
+
+func (repo *articleRepository) List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error) {
+	// 只有第一页才走缓存，并且假定一页只有 100 条
+	// 也就是说，如果前端允许创作者调整页的大小
+	// 那么只有 100 这个页大小这个默认情况下，会走索引
+	if offset == 0 && limit == 100 {
+		data, err := repo.cache.GetFirstPage(ctx, authorId)
+		if err == nil {
+			// 提前准备文章内容详情的缓存  一般都是让调用者来控制是否异步。
+			go func() {
+				repo.preCache(ctx, data)
+			}()
+			return data, nil
+		}
+		if err != cache.ErrKeyNotExist {
+			repo.l.Error("查询缓存文章失败",
+				logger.Int64("author", authorId), logger.Error(err))
+		}
+	}
+	arts, err := repo.dao.GetByAuthor(ctx, authorId, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	res := slice.Map[article.Article, domain.Article](arts,
+		func(idx int, src article.Article) domain.Article {
+			return repo.toDomain(src)
+		})
+	// 提前准备文章内容详情的缓存  一般都是让调用者来控制是否异步。
+	go func() {
+		repo.preCache(ctx, res)
+	}()
+	// 这个也可以做成异步的
+	err = repo.cache.SetFirstPage(ctx, authorId, res)
+	if err != nil {
+		repo.l.Error("刷新第一页文章的缓存失败",
+			logger.Int64("author", authorId), logger.Error(err))
+	}
+	return res, nil
+}
+
+func (repo *articleRepository) preCache(ctx context.Context, arts []domain.Article) {
+	// 1MB
+	const contentSizeThreshold = 1024 * 1024
+	// 只缓存第一篇文章
+	if len(arts) > 0 && len(arts[0].Content) <= contentSizeThreshold {
+		// 你也可以记录日志
+		if err := repo.cache.Set(ctx, arts[0]); err != nil {
+			repo.l.Error("提前准备缓存失败", logger.Error(err))
+		}
 	}
 }
 

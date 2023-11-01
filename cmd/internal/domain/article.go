@@ -23,6 +23,15 @@ type Article struct {
 	Utime  time.Time
 }
 
+// Abstract 取部分作为摘要
+func (a Article) Abstract() string {
+	cs := []rune(a.Content)
+	if len(cs) < 100 {
+		return a.Content
+	}
+	return string(cs[:100])
+}
+
 // Author 在帖子这个领域内，是一个值对象
 type Author struct {
 	Id   int64
