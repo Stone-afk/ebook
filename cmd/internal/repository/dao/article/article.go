@@ -18,6 +18,31 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	}
 }
 
+func (dao *GORMArticleDAO) GetById(ctx context.Context, id int64) (Article, error) {
+	var art Article
+	err := dao.db.WithContext(ctx).Model(&Article{}).
+		Where("id = ?", id).
+		First(&art).Error
+	return art, err
+}
+
+func (dao *GORMArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	var pub PublishedArticle
+	err := dao.db.WithContext(ctx).
+		Where("id = ?", id).First(&pub).Error
+	return pub, err
+}
+
+func (dao *GORMArticleDAO) GetByAuthor(ctx context.Context, authorId int64, offset, limit int) ([]Article, error) {
+	var arts []Article
+	err := dao.db.WithContext(ctx).Model(&Article{}).
+		Where("author_id = ?", authorId).
+		Offset(offset).Limit(limit).
+		Order("utime DESC").
+		Find(&arts).Error
+	return arts, err
+}
+
 func (dao *GORMArticleDAO) Sync(ctx context.Context, art Article) (int64, error) {
 	tx := dao.db.WithContext(ctx).Begin()
 	now := time.Now().UnixMilli()
