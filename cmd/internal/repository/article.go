@@ -8,6 +8,7 @@ import (
 	"ebook/cmd/pkg/logger"
 	"github.com/ecodeclub/ekit/slice"
 	"gorm.io/gorm"
+	"time"
 )
 
 // repository 还是要用来操作缓存和DAO
@@ -23,11 +24,13 @@ type ArticleRepository interface {
 	// SyncStatus 仅仅同步状态
 	SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error
 	List(ctx context.Context, author int64, offset, limit int) ([]domain.Article, error)
+	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 }
 
 type articleRepository struct {
-	dao   article.ArticleDAO
-	cache cache.ArticleCache
+	dao      article.ArticleDAO
+	cache    cache.ArticleCache
+	userRepo UserRepository
 
 	// SyncV1 用
 	authorDAO article.ArticleAuthorDAO
@@ -38,10 +41,11 @@ type articleRepository struct {
 	l  logger.Logger
 }
 
-func NewArticleRepository(dao article.ArticleDAO, l logger.Logger) ArticleRepository {
+func NewArticleRepository(dao article.ArticleDAO, userRepo UserRepository, l logger.Logger) ArticleRepository {
 	return &articleRepository{
-		dao: dao,
-		l:   l,
+		userRepo: userRepo,
+		dao:      dao,
+		l:        l,
 	}
 }
 
@@ -58,6 +62,31 @@ func NewArticleRepositoryV2(db *gorm.DB, l logger.Logger) ArticleRepository {
 		db: db,
 		l:  l,
 	}
+}
+
+func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
+	// 读取线上库数据，如果你的 Content 被你放过去了 OSS 上，你就要让前端去读 Content 字段
+	art, err := repo.dao.GetPubById(ctx, id)
+	if err != nil {
+		return domain.Article{}, err
+	}
+	// 在这边要组装 user 了，适合单体应用
+	usr, err := repo.userRepo.FindById(ctx, art.AuthorId)
+	if err != nil {
+		return domain.Article{}, err
+	}
+	return domain.Article{
+		Id:      art.Id,
+		Title:   art.Title,
+		Status:  domain.ArticleStatus(art.Status),
+		Content: art.Content,
+		Author: domain.Author{
+			Id:   usr.Id,
+			Name: usr.Nickname,
+		},
+		Ctime: time.UnixMilli(art.Ctime),
+		Utime: time.UnixMilli(art.Utime),
+	}, nil
 }
 
 func (repo *articleRepository) List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error) {

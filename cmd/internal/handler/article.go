@@ -4,10 +4,13 @@ import (
 	"ebook/cmd/internal/domain"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
+	"ebook/cmd/pkg/ginx"
 	"ebook/cmd/pkg/logger"
+	"errors"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -41,55 +44,71 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.GET("/detail/:id", h.Detail)
 	// 理论上来说应该用 GET的，但是我实在不耐烦处理类型转化
 	// 直接 POST，JSON 转一了百了。
-	g.POST("/list", h.List)
+	g.POST("/list", ginx.WrapBodyAndToken[ListReq, ijwt.UserClaims](h.l, h.List))
+
+	pub := g.Group("/pub")
+	pub.GET("/:id", h.PubDetail)
 
 }
 
-func (h *ArticleHandler) List(ctx *gin.Context) {
-	type Req struct {
-		Offset int `json:"offset"`
-		Limit  int `json:"limit"`
-	}
-	var req Req
-	if err := ctx.Bind(&req); err != nil {
-		h.l.Error("反序列化请求失败", logger.Error(err))
+func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "参数错误",
+		})
+		h.l.Error("输入的 ID 不对", logger.Error(err))
 		return
 	}
+	art, err := h.svc.GetPublishedById(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "系统错误",
+		})
+		h.l.Error("获取发布文章详情失败", logger.Error(err))
+		return
+	}
+	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
+	ctx.JSON(http.StatusOK, Result{
+		Data: ArticleVO{
+			Id:      art.Id,
+			Title:   art.Title,
+			Status:  art.Status.ToUint8(),
+			Content: art.Content,
+			// 要把作者信息带出去
+			Author: art.Author.Name,
+			Ctime:  art.Ctime.Format(time.DateTime),
+			Utime:  art.Utime.Format(time.DateTime),
+		},
+	})
+}
+
+func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (Result, error) {
 	// 对于批量接口来说，要小心批次大小
 	if req.Limit > 100 {
-		ctx.JSON(http.StatusOK, Result{
+		return Result{
 			Code: 4,
 			// 我会倾向于不告诉前端批次太大
 			// 因为一般你和前端一起完成任务的时候
 			// 你们是协商好了的，所以会进来这个分支
 			// 就表明是有人跟你过不去
 			Msg: "请求有误",
-		})
-		h.l.Error("获得用户会话信息失败")
-		return
+		}, errors.New("单次请求超出最大数量限制")
 	}
-	usr, ok := ctx.MustGet("user").(ijwt.UserClaims)
-	if !ok {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		h.l.Error("获得用户会话信息失败")
-		return
-	}
-	arts, err := h.svc.List(ctx, usr.UserId, req.Offset, req.Limit)
+	arts, err := h.svc.List(ctx, uc.UserId, req.Offset, req.Limit)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		return Result{
 			Code: 5,
 			Msg:  "系统错误",
-		})
-		h.l.Error("获得用户会话信息失败")
-		return
+		}, err
 	}
-	ctx.JSON(http.StatusOK, Result{
-		Data: slice.Map[domain.Article, ArticleVo](arts,
-			func(idx int, src domain.Article) ArticleVo {
-				return ArticleVo{
+	return Result{
+		Data: slice.Map[domain.Article, ArticleVO](arts,
+			func(idx int, src domain.Article) ArticleVO {
+				return ArticleVO{
 					Id:       src.Id,
 					Title:    src.Title,
 					Abstract: src.Abstract(),
@@ -102,8 +121,68 @@ func (h *ArticleHandler) List(ctx *gin.Context) {
 					Utime: src.Utime.Format(time.DateTime),
 				}
 			}),
-	})
+	}, nil
 }
+
+//func (h *ArticleHandler) List(ctx *gin.Context) {
+//	type Req struct {
+//		Offset int `json:"offset"`
+//		Limit  int `json:"limit"`
+//	}
+//	var req Req
+//	if err := ctx.Bind(&req); err != nil {
+//		h.l.Error("反序列化请求失败", logger.Error(err))
+//		return
+//	}
+//	// 对于批量接口来说，要小心批次大小
+//	if req.Limit > 100 {
+//		ctx.JSON(http.StatusOK, Result{
+//			Code: 4,
+//			// 我会倾向于不告诉前端批次太大
+//			// 因为一般你和前端一起完成任务的时候
+//			// 你们是协商好了的，所以会进来这个分支
+//			// 就表明是有人跟你过不去
+//			Msg: "请求有误",
+//		})
+//		h.l.Error("获得用户会话信息失败")
+//		return
+//	}
+//	usr, ok := ctx.MustGet("user").(ijwt.UserClaims)
+//	if !ok {
+//		ctx.JSON(http.StatusOK, Result{
+//			Code: 5,
+//			Msg:  "系统错误",
+//		})
+//		h.l.Error("获得用户会话信息失败")
+//		return
+//	}
+//	arts, err := h.svc.List(ctx, usr.UserId, req.Offset, req.Limit)
+//	if err != nil {
+//		ctx.JSON(http.StatusOK, Result{
+//			Code: 5,
+//			Msg:  "系统错误",
+//		})
+//		h.l.Error("获得用户会话信息失败")
+//		return
+//	}
+//	ctx.JSON(http.StatusOK, Result{
+//		Data: slice.Map[domain.Article, ArticleVo](arts,
+//			func(idx int, src domain.Article) ArticleVo {
+//				return ArticleVo{
+//					Id:       src.Id,
+//					Title:    src.Title,
+//					Abstract: src.Abstract(),
+//					Status:   src.Status.ToUint8(),
+//					// 这个列表请求，不需要返回内容
+//					//Content: src.Content,
+//					// 这个是创作者看自己的文章列表，也不需要这个字段
+//					//Author: src.Author
+//					Ctime: src.Ctime.Format(time.DateTime),
+//					Utime: src.Utime.Format(time.DateTime),
+//				}
+//			}),
+//	})
+//}
 
 func (h *ArticleHandler) Detail(ctx *gin.Context) {
 	panic("")

@@ -8,7 +8,7 @@ type ArticleReq struct {
 	Content string `json:"content"`
 }
 
-type ArticleVo struct {
+type ArticleVO struct {
 	Id    int64  `json:"id"`
 	Title string `json:"title"`
 	// 摘要
@@ -19,6 +19,11 @@ type ArticleVo struct {
 	Author  string `json:"author"`
 	Ctime   string `json:"ctime"`
 	Utime   string `json:"utime"`
+}
+
+type ListReq struct {
+	Offset int `json:"offset"`
+	Limit  int `json:"limit"`
 }
 
 func (req ArticleReq) toDomain(userId int64) domain.Article {

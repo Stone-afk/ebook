@@ -13,6 +13,7 @@ type ArticleDAO interface {
 	Sync(ctx context.Context, art Article) (int64, error)
 	SyncStatus(ctx context.Context, authorId, id int64, status uint8) error
 	GetByAuthor(ctx context.Context, authorId int64, offset, limit int) ([]Article, error)
+	GetPubById(ctx context.Context, id int64) (PublishedArticle, error)
 }
 
 type ArticleReaderDAO interface {
