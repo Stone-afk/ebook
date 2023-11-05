@@ -65,7 +65,19 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 }
 
 func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
-	panic("")
+	var err error
+	if req.Like {
+		err = h.intrSvc.Like(ctx, h.biz, req.Id, uc.UserId)
+	} else {
+		err = h.intrSvc.CancelLike(ctx, h.biz, req.Id, uc.UserId)
+	}
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{Msg: "OK"}, nil
 }
 
 func (h *ArticleHandler) PubDetail(ctx *gin.Context) {

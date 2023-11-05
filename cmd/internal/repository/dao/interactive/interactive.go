@@ -11,12 +11,77 @@ type GORMInteractiveDAO struct {
 	db *gorm.DB
 }
 
+func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
+	return &GORMInteractiveDAO{
+		db: db,
+	}
+}
+
 func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
-	panic("")
+	// 一把梭
+	// 同时记录点赞，以及更新点赞计数
+	// 首先你需要一张表来记录，谁点给什么资源点了赞
+	now := time.Now().UnixMilli()
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 先准备插入点赞记录
+		// 有没有可能已经点赞过了？
+		// 我要不要校验一下，这里必须是没有点赞过
+		err := tx.Clauses(clause.OnConflict{
+			DoUpdates: clause.Assignments(map[string]any{
+				"utime":  now,
+				"statue": 1,
+			}),
+		}).Create(&UserLikeBiz{
+			Biz:    biz,
+			BizId:  bizId,
+			Uid:    uid,
+			Status: 1,
+			Ctime:  now,
+			Utime:  now,
+		}).Error
+		if err != nil {
+			return err
+		}
+		return tx.Clauses(clause.OnConflict{
+			// MySQL 不写
+			//Columns:
+			DoUpdates: clause.Assignments(map[string]any{
+				"like_cnt": gorm.Expr("like_cnt + 1"),
+				"utime":    time.Now().UnixMilli(),
+			}),
+		}).Create(&Interactive{
+			Biz:     biz,
+			BizId:   bizId,
+			LikeCnt: 1,
+			Ctime:   now,
+			Utime:   now,
+		}).Error
+	})
 }
 
 func (dao *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
-	panic("")
+	now := time.Now().UnixMilli()
+	// 控制事务超时
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 两个操作
+		// 一个是软删除点赞记录
+		// 一个是减点赞数量
+		err := tx.Model(&UserLikeBiz{}).
+			Where("biz=? AND biz_id = ? AND uid = ?", biz, bizId, uid).
+			Updates(map[string]any{
+				"utime":  now,
+				"status": 0,
+			}).Error
+		if err != nil {
+			return err
+		}
+		return tx.Model(&Interactive{}).
+			Where("biz=? AND biz_id = ?", biz, bizId).
+			Updates(map[string]any{
+				"utime":    now,
+				"like_cnt": gorm.Expr("like_cnt-1"),
+			}).Error
+	})
 }
 
 // IncrReadCnt 是一个插入或者更新语义
