@@ -2,6 +2,12 @@ package handler
 
 import "ebook/cmd/internal/domain"
 
+type LikeReq struct {
+	Id int64 `json:"id"`
+	// 点赞和取消点赞，我都准备复用这个
+	Like bool `json:"like"`
+}
+
 type ArticleReq struct {
 	Id      int64  `json:"id"`
 	Title   string `json:"title"`

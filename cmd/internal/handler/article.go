@@ -18,14 +18,18 @@ import (
 var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
-	svc service.ArticleService
-	l   logger.Logger
+	svc     service.ArticleService
+	l       logger.Logger
+	intrSvc service.InteractiveService
+	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, intrSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
-		svc: svc,
-		l:   l,
+		svc:     svc,
+		l:       l,
+		intrSvc: intrSvc,
+		biz:     "article",
 	}
 }
 
@@ -49,7 +53,19 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 
 	pub := g.Group("/pub")
 	pub.GET("/:id", h.PubDetail)
+	// 点赞是这个接口，取消点赞也是这个接口
+	// RESTful 风格
+	//pub.POST("/like/:id", ginx.WrapBodyAndToken[LikeReq,
+	//	ijwt.UserClaims](h.Like))
+	//pub.POST("/cancel_like", ginx.WrapBodyAndToken[LikeReq,
+	//	ijwt.UserClaims](h.Like))
+	pub.POST("/like", ginx.WrapBodyAndToken[LikeReq,
+		ijwt.UserClaims](h.l, h.Like))
 
+}
+
+func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	panic("")
 }
 
 func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
