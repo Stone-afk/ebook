@@ -7,6 +7,7 @@ import (
 	"ebook/cmd/pkg/logger"
 )
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/service/article.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/service/mocks/article.mock.go
 type ArticleService interface {
 	Save(ctx context.Context, art domain.Article) (int64, error)
 	Withdraw(ctx context.Context, art domain.Article) error
