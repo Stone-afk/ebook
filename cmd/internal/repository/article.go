@@ -24,6 +24,7 @@ type ArticleRepository interface {
 	// SyncStatus 仅仅同步状态
 	SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error
 	List(ctx context.Context, author int64, offset, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 }
 
@@ -87,6 +88,19 @@ func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (
 		Ctime: time.UnixMilli(art.Ctime),
 		Utime: time.UnixMilli(art.Utime),
 	}, nil
+}
+
+func (repo *articleRepository) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	art, err := repo.cache.Get(ctx, id)
+	if err != nil {
+		data, er := repo.dao.GetById(ctx, id)
+		if er != nil {
+			return domain.Article{}, err
+		}
+		repo.l.Error("查询缓存文章失败", logger.Int64("id", id), logger.Error(err))
+		return repo.toDomain(data), nil
+	}
+	return art, nil
 }
 
 func (repo *articleRepository) List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error) {

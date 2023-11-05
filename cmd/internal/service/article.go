@@ -14,6 +14,7 @@ type ArticleService interface {
 	PublishV1(ctx context.Context, art domain.Article) (int64, error)
 	List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error)
 	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
 }
 
 type articleService struct {
@@ -43,6 +44,10 @@ func NewArticleServiceV1(
 		readerRepo: readerRepo,
 		log:        l,
 	}
+}
+
+func (svc *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	return svc.repo.GetById(ctx, id)
 }
 
 func (svc *articleService) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {

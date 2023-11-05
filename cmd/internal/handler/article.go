@@ -7,6 +7,7 @@ import (
 	"ebook/cmd/pkg/ginx"
 	"ebook/cmd/pkg/logger"
 	"errors"
+	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -41,7 +42,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.POST("/withdraw", h.Withdraw)
 	// 在有 list 等路由的时候，无法这样注册
 	// g.GET("/:id", a.Detail)
-	g.GET("/detail/:id", h.Detail)
+	g.GET("/detail/:id", ginx.WrapToken[ijwt.UserClaims](h.l, h.Detail))
 	// 理论上来说应该用 GET的，但是我实在不耐烦处理类型转化
 	// 直接 POST，JSON 转一了百了。
 	g.POST("/list", ginx.WrapBodyAndToken[ListReq, ijwt.UserClaims](h.l, h.List))
@@ -84,6 +85,54 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 			Utime:  art.Utime.Format(time.DateTime),
 		},
 	})
+}
+
+func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (Result, error) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		//ctx.JSON(http.StatusOK, )
+		//a.l.Error("前端输入的 ID 不对", logger.Error(err))
+		return ginx.Result{
+			Code: 4,
+			Msg:  "参数错误",
+		}, err
+	}
+	art, err := h.svc.GetById(ctx, id)
+	if err != nil {
+		//ctx.JSON(http.StatusOK, )
+		//a.l.Error("获得文章信息失败", logger.Error(err))
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	// 这是不借助数据库查询来判定的方法
+	if art.Author.Id != uc.UserId {
+		//ctx.JSON(http.StatusOK)
+		// 如果公司有风控系统，这个时候就要上报这种非法访问的用户了。
+		//a.l.Error("非法访问文章，创作者 ID 不匹配",
+		//	logger.Int64("uid", usr.Id))
+		return ginx.Result{
+			Code: 4,
+			// 也不需要告诉前端究竟发生了什么
+			Msg: "输入有误",
+		}, fmt.Errorf("非法访问文章，创作者 ID 不匹配 %d", uc.UserId)
+	}
+	return ginx.Result{
+		Data: ArticleVO{
+			Id:    art.Id,
+			Title: art.Title,
+			// 不需要这个摘要信息
+			//Abstract: art.Abstract(),
+			Status:  art.Status.ToUint8(),
+			Content: art.Content,
+			// 这个是创作者看自己的文章列表，也不需要这个字段
+			//Author: art.Author
+			Ctime: art.Ctime.Format(time.DateTime),
+			Utime: art.Utime.Format(time.DateTime),
+		},
+	}, nil
 }
 
 func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (Result, error) {
@@ -183,10 +232,6 @@ func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims)
 //			}),
 //	})
 //}
-
-func (h *ArticleHandler) Detail(ctx *gin.Context) {
-	panic("")
-}
 
 func (h *ArticleHandler) Withdraw(ctx *gin.Context) {
 	type Req struct {
