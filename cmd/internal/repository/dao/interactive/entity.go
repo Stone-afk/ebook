@@ -1,5 +1,49 @@
 package interactive
 
+// SELECT c.id as cid , c.name as cname, uc.biz_id as biz_id, uc.biz as biz
+// FROM `collection` as c JOIN `user_collection_biz` as uc
+// ON c.id = uc.cid
+// WHERE c.id IN (1,2,3)
+
+type CollectionItem struct {
+	Cid   int64
+	Cname string
+	BizId int64
+	Biz   string
+}
+
+func (dao *GORMInteractiveDAO) GetItems() ([]CollectionItem, error) {
+	// 不记得构造 JOIN 查询
+	var items []CollectionItem
+	err := dao.db.Raw("", 1, 2, 3).Find(&items).Error
+	return items, err
+}
+
+// UserCollectionBiz 收藏的资源
+type UserCollectionBiz struct {
+	Id int64 `gorm:"primaryKey,autoIncrement"`
+	// 收藏夹 ID
+	// 作为关联关系中的外键，我们这里需要索引
+	Cid   int64  `gorm:"index"`
+	BizId int64  `gorm:"uniqueIndex:biz_type_id_uid"`
+	Biz   string `gorm:"type:varchar(128);uniqueIndex:biz_type_id_uid"`
+	// 这算是一个冗余，因为正常来说，
+	// 只需要在 Collection 中维持住 Uid 就可以
+	Uid   int64 `gorm:"uniqueIndex:biz_type_id_uid"`
+	Ctime int64
+	Utime int64
+}
+
+// Collection 收藏夹
+type Collection struct {
+	Id   int64  `gorm:"primaryKey,autoIncrement"`
+	Name string `gorm:"type=varchar(1024)"`
+	Uid  int64  `gorm:""`
+
+	Ctime int64
+	Utime int64
+}
+
 // UserLikeBiz 用户点赞的业务
 type UserLikeBiz struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
