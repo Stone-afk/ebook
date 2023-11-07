@@ -17,6 +17,14 @@ func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 	}
 }
 
+func (dao *GORMInteractiveDAO) GetLikeInfo(ctx context.Context, biz string, bizId, uid int64) (UserLikeBiz, error) {
+	panic("")
+}
+
+func (dao *GORMInteractiveDAO) GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error) {
+	panic("")
+}
+
 func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
 	// 一把梭
 	// 同时记录点赞，以及更新点赞计数

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/interactive"
 	"ebook/cmd/pkg/logger"
@@ -10,8 +11,11 @@ import (
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/interactive.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/interactive.mock.go
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
-	IncrLike(ctx context.Context, biz string, bizId, uid int64) error
-	DecrLike(ctx context.Context, biz string, bizId, uid int64) error
+	IncrLike(ctx context.Context, biz string, bizId, userId int64) error
+	DecrLike(ctx context.Context, biz string, bizId, userId int64) error
+	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
+	Liked(ctx context.Context, biz string, id int64, userId int64) (bool, error)
+	Collected(ctx context.Context, biz string, id int64, userId int64) (bool, error)
 }
 
 type interactiveRepository struct {
@@ -29,10 +33,25 @@ func NewCachedInteractiveRepository(dao interactive.InteractiveDAO,
 	}
 }
 
+func (repo *interactiveRepository) Get(ctx context.Context,
+	biz string, bizId int64) (domain.Interactive, error) {
+	panic("")
+}
+
+func (repo *interactiveRepository) Liked(ctx context.Context,
+	biz string, id int64, userId int64) (bool, error) {
+	panic("")
+}
+
+func (repo *interactiveRepository) Collected(ctx context.Context,
+	biz string, id int64, userId int64) (bool, error) {
+	panic("")
+}
+
 func (repo *interactiveRepository) IncrLike(ctx context.Context,
-	biz string, bizId int64, uid int64) error {
+	biz string, bizId int64, userId int64) error {
 	// 先插入点赞，然后更新点赞计数，更新缓存
-	err := repo.dao.InsertLikeInfo(ctx, biz, bizId, uid)
+	err := repo.dao.InsertLikeInfo(ctx, biz, bizId, userId)
 	if err != nil {
 		return err
 	}
@@ -40,8 +59,8 @@ func (repo *interactiveRepository) IncrLike(ctx context.Context,
 }
 
 func (repo *interactiveRepository) DecrLike(ctx context.Context,
-	biz string, bizId, uid int64) error {
-	err := repo.dao.DeleteLikeInfo(ctx, biz, bizId, uid)
+	biz string, bizId, userId int64) error {
+	err := repo.dao.DeleteLikeInfo(ctx, biz, bizId, userId)
 	if err != nil {
 		return err
 	}
