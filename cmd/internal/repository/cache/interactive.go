@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"ebook/cmd/internal/domain"
 	_ "embed"
 	"fmt"
 	"github.com/redis/go-redis/v9"
@@ -25,6 +26,12 @@ type InteractiveCache interface {
 	IncrReadCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	IncrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	DecrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error
+	IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error
+
+	// Get 查询缓存中数据
+	// 事实上，这里 liked 和 collected 是不需要缓存的
+	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
+	Set(ctx context.Context, biz string, bizId int64, intr domain.Interactive) error
 }
 
 // 方案1
@@ -44,6 +51,18 @@ func NewRedisInteractiveCache(client redis.Cmdable) InteractiveCache {
 	return &RedisInteractiveCache{
 		client: client,
 	}
+}
+
+func (r *RedisInteractiveCache) Set(ctx context.Context, biz string, bizId int64, intr domain.Interactive) error {
+	panic("")
+}
+
+func (r *RedisInteractiveCache) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
+	panic("")
+}
+
+func (r *RedisInteractiveCache) IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	panic("")
 }
 
 func (r *RedisInteractiveCache) IncrReadCntIfPresent(ctx context.Context, biz string, bizId int64) error {

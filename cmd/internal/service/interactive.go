@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/pkg/logger"
 )
@@ -10,9 +11,10 @@ import (
 type InteractiveService interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	// Like 点赞
-	Like(ctx context.Context, biz string, bizId int64, uid int64) error
+	Like(ctx context.Context, biz string, bizId int64, userId int64) error
 	// CancelLike 取消点赞
-	CancelLike(ctx context.Context, biz string, bizId int64, uid int64) error
+	CancelLike(ctx context.Context, biz string, bizId int64, userId int64) error
+	Get(ctx context.Context, biz string, bizId, userId int64) (domain.Interactive, error)
 }
 
 type interactiveService struct {
@@ -20,15 +22,19 @@ type interactiveService struct {
 	l    logger.Logger
 }
 
-func (svc *interactiveService) Like(ctx context.Context, biz string, bizId int64, uid int64) error {
+func (svc *interactiveService) Get(ctx context.Context, biz string, bizId, userId int64) (domain.Interactive, error) {
+	panic("")
+}
+
+func (svc *interactiveService) Like(ctx context.Context, biz string, bizId int64, userId int64) error {
 	// 点赞
-	return svc.repo.IncrLike(ctx, biz, bizId, uid)
+	return svc.repo.IncrLike(ctx, biz, bizId, userId)
 }
 
 func (svc *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
 	return svc.repo.IncrReadCnt(ctx, biz, bizId)
 }
 
-func (svc *interactiveService) CancelLike(ctx context.Context, biz string, bizId int64, uid int64) error {
-	return svc.repo.DecrLike(ctx, biz, bizId, uid)
+func (svc *interactiveService) CancelLike(ctx context.Context, biz string, bizId int64, userId int64) error {
+	return svc.repo.DecrLike(ctx, biz, bizId, userId)
 }

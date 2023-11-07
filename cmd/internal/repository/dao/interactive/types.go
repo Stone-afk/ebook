@@ -12,4 +12,7 @@ type InteractiveDAO interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	InsertLikeInfo(ctx context.Context, biz string, bizId, uid int64) error
 	DeleteLikeInfo(ctx context.Context, biz string, bizId, uid int64) error
+	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
+	GetLikeInfo(ctx context.Context, biz string, bizId, uid int64) (UserLikeBiz, error)
+	GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error)
 }
