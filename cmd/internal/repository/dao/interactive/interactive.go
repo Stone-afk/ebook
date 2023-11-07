@@ -17,12 +17,48 @@ func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 	}
 }
 
-func (dao *GORMInteractiveDAO) GetLikeInfo(ctx context.Context, biz string, bizId, uid int64) (UserLikeBiz, error) {
+func (dao *GORMInteractiveDAO) Get(ctx context.Context, biz string, bizId int64) (Interactive, error) {
+	var res Interactive
+	err := dao.db.WithContext(ctx).
+		Where("biz = ? AND biz_id = ?", biz, bizId).
+		First(&res).Error
+	return res, err
+}
+
+func (dao *GORMInteractiveDAO) GetLikeInfo(ctx context.Context,
+	biz string, bizId, uid int64) (UserLikeBiz, error) {
 	panic("")
 }
 
-func (dao *GORMInteractiveDAO) GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error) {
+func (dao *GORMInteractiveDAO) GetCollectionInfo(ctx context.Context,
+	biz string, bizId, uid int64) (UserCollectionBiz, error) {
 	panic("")
+}
+
+func (dao *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error {
+	// 一把梭
+	// 同时记录点赞，以及更新点赞计数
+	// 首先你需要一张表来记录，谁点给什么资源点了赞
+	now := time.Now().UnixMilli()
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := tx.WithContext(ctx).Create(&cb).Error
+		if err != nil {
+			return err
+		}
+		// 这边就是更新数量
+		return tx.Clauses(clause.OnConflict{
+			DoUpdates: clause.Assignments(map[string]any{
+				"collect_cnt": gorm.Expr("`collect_cnt`+1"),
+				"utime":       now,
+			}),
+		}).Create(&Interactive{
+			CollectCnt: 1,
+			Ctime:      now,
+			Utime:      now,
+			Biz:        cb.Biz,
+			BizId:      cb.BizId,
+		}).Error
+	})
 }
 
 func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
@@ -37,7 +73,7 @@ func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, b
 		err := tx.Clauses(clause.OnConflict{
 			DoUpdates: clause.Assignments(map[string]any{
 				"utime":  now,
-				"statue": 1,
+				"status": 1,
 			}),
 		}).Create(&UserLikeBiz{
 			Biz:    biz,

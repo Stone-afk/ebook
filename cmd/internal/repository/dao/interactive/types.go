@@ -14,5 +14,6 @@ type InteractiveDAO interface {
 	DeleteLikeInfo(ctx context.Context, biz string, bizId, uid int64) error
 	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
 	GetLikeInfo(ctx context.Context, biz string, bizId, uid int64) (UserLikeBiz, error)
+	InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error
 	GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error)
 }
