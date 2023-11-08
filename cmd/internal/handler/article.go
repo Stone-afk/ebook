@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -91,15 +92,49 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 		h.l.Error("输入的 ID 不对", logger.Error(err))
 		return
 	}
-	art, err := h.svc.GetPublishedById(ctx, id)
+	uc := ctx.MustGet("users").(ijwt.UserClaims)
+	var eg errgroup.Group
+	var art domain.Article
+	eg.Go(func() error {
+		art, err = h.svc.GetPublishedById(ctx, id)
+		if err != nil {
+			h.l.Error("获取发布文章详情失败", logger.Error(err))
+		}
+		return err
+	})
+	var intr domain.Interactive
+	eg.Go(func() error {
+		// 这个地方可以容忍错误
+		intr, err = h.intrSvc.Get(ctx, h.biz, id, uc.UserId)
+		// 这种是容错的写法
+		//if err != nil {
+		//	// 记录日志
+		//}
+		//return nil
+		return err
+	})
+	// 在这儿等，要保证前面两个
+	err = eg.Wait()
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 4,
 			Msg:  "系统错误",
 		})
-		h.l.Error("获取发布文章详情失败", logger.Error(err))
 		return
 	}
+
+	// 增加阅读计数。
+	go func() {
+		// 你都异步了，怎么还说有巨大的压力呢？
+		// 开一个 goroutine，异步去执行
+		er := h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
+		if er != nil {
+			h.l.Error("增加阅读计数失败",
+				logger.Int64("aid", art.Id),
+				logger.Error(err))
+		}
+	}()
+
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
@@ -108,9 +143,14 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 			Status:  art.Status.ToUint8(),
 			Content: art.Content,
 			// 要把作者信息带出去
-			Author: art.Author.Name,
-			Ctime:  art.Ctime.Format(time.DateTime),
-			Utime:  art.Utime.Format(time.DateTime),
+			Author:     art.Author.Name,
+			Ctime:      art.Ctime.Format(time.DateTime),
+			Utime:      art.Utime.Format(time.DateTime),
+			Liked:      intr.Liked,
+			Collected:  intr.Collected,
+			LikeCnt:    intr.LikeCnt,
+			ReadCnt:    intr.ReadCnt,
+			CollectCnt: intr.CollectCnt,
 		},
 	})
 }
