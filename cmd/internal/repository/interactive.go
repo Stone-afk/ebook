@@ -40,12 +40,30 @@ func (repo *interactiveRepository) Get(ctx context.Context,
 
 func (repo *interactiveRepository) Liked(ctx context.Context,
 	biz string, id int64, userId int64) (bool, error) {
-	panic("")
+	_, err := repo.dao.GetLikeInfo(ctx, biz, id, userId)
+	switch err {
+	case nil:
+		return true, nil
+	case interactive.ErrRecordNotFound:
+		// 你要吞掉
+		return false, nil
+	default:
+		return false, err
+	}
 }
 
 func (repo *interactiveRepository) Collected(ctx context.Context,
 	biz string, id int64, userId int64) (bool, error) {
-	panic("")
+	_, err := repo.dao.GetCollectionInfo(ctx, biz, id, userId)
+	switch err {
+	case nil:
+		return true, nil
+	case interactive.ErrRecordNotFound:
+		// 你要吞掉
+		return false, nil
+	default:
+		return false, err
+	}
 }
 
 func (repo *interactiveRepository) IncrLike(ctx context.Context,
