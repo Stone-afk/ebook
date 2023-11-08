@@ -26,13 +26,21 @@ func (dao *GORMInteractiveDAO) Get(ctx context.Context, biz string, bizId int64)
 }
 
 func (dao *GORMInteractiveDAO) GetLikeInfo(ctx context.Context,
-	biz string, bizId, uid int64) (UserLikeBiz, error) {
-	panic("")
+	biz string, bizId, userId int64) (UserLikeBiz, error) {
+	var res UserLikeBiz
+	err := dao.db.WithContext(ctx).
+		Where("biz=? AND biz_id = ? AND uid = ? AND status = ?",
+			biz, bizId, userId, 1).First(&res).Error
+	return res, err
 }
 
 func (dao *GORMInteractiveDAO) GetCollectionInfo(ctx context.Context,
-	biz string, bizId, uid int64) (UserCollectionBiz, error) {
-	panic("")
+	biz string, bizId, userId int64) (UserCollectionBiz, error) {
+	var res UserCollectionBiz
+	err := dao.db.WithContext(ctx).
+		Where("biz=? AND biz_id = ? AND uid = ?", biz, bizId, userId).
+		First(&res).Error
+	return res, err
 }
 
 func (dao *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error {
@@ -61,7 +69,7 @@ func (dao *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb UserC
 	})
 }
 
-func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
+func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, bizId, userId int64) error {
 	// 一把梭
 	// 同时记录点赞，以及更新点赞计数
 	// 首先你需要一张表来记录，谁点给什么资源点了赞
@@ -78,7 +86,7 @@ func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, b
 		}).Create(&UserLikeBiz{
 			Biz:    biz,
 			BizId:  bizId,
-			Uid:    uid,
+			Uid:    userId,
 			Status: 1,
 			Ctime:  now,
 			Utime:  now,
@@ -103,7 +111,7 @@ func (dao *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, b
 	})
 }
 
-func (dao *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
+func (dao *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, bizId, userId int64) error {
 	now := time.Now().UnixMilli()
 	// 控制事务超时
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -111,7 +119,7 @@ func (dao *GORMInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, b
 		// 一个是软删除点赞记录
 		// 一个是减点赞数量
 		err := tx.Model(&UserLikeBiz{}).
-			Where("biz=? AND biz_id = ? AND uid = ?", biz, bizId, uid).
+			Where("biz=? AND biz_id = ? AND userId = ?", biz, bizId, userId).
 			Updates(map[string]any{
 				"utime":  now,
 				"status": 0,
