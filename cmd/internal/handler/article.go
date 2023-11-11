@@ -96,7 +96,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 	var eg errgroup.Group
 	var art domain.Article
 	eg.Go(func() error {
-		art, err = h.svc.GetPublishedById(ctx, id)
+		art, err = h.svc.GetPublishedById(ctx, id, uc.UserId)
 		if err != nil {
 			h.l.Error("获取发布文章详情失败", logger.Error(err))
 		}
@@ -124,16 +124,16 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}
 
 	// 增加阅读计数。
-	go func() {
-		// 你都异步了，怎么还说有巨大的压力呢？
-		// 开一个 goroutine，异步去执行
-		er := h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
-		if er != nil {
-			h.l.Error("增加阅读计数失败",
-				logger.Int64("aid", art.Id),
-				logger.Error(err))
-		}
-	}()
+	//go func() {
+	//	// 你都异步了，怎么还说有巨大的压力呢？
+	//	// 开一个 goroutine，异步去执行
+	//	er := h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
+	//	if er != nil {
+	//		h.l.Error("增加阅读计数失败",
+	//			logger.Int64("aid", art.Id),
+	//			logger.Error(err))
+	//	}
+	//}()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
