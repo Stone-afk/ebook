@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"ebook/cmd/internal/domain"
+	events "ebook/cmd/internal/events/article"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/pkg/logger"
 )
@@ -14,7 +15,7 @@ type ArticleService interface {
 	Publish(ctx context.Context, art domain.Article) (int64, error)
 	PublishV1(ctx context.Context, art domain.Article) (int64, error)
 	List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error)
-	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx context.Context, id int64, userId int64) (domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 }
 
@@ -25,8 +26,9 @@ type articleService struct {
 
 	// 2. 在 repo 里面处理制作库和线上库
 	// 1 和 2 是互斥的，不会同时存在
-	repo repository.ArticleRepository
-	log  logger.Logger
+	repo     repository.ArticleRepository
+	producer events.Producer
+	log      logger.Logger
 }
 
 func NewArticleService(repo repository.ArticleRepository, l logger.Logger) ArticleService {
@@ -44,11 +46,13 @@ type readInfo struct {
 func NewArticleServiceV1(
 	authorRepo repository.ArticleAuthorRepository,
 	readerRepo repository.ArticleReaderRepository,
+	producer events.Producer,
 	l logger.Logger) ArticleService {
 	return &articleService{
 		authorRepo: authorRepo,
 		readerRepo: readerRepo,
 		log:        l,
+		producer:   producer,
 	}
 }
 
@@ -56,8 +60,25 @@ func (svc *articleService) GetById(ctx context.Context, id int64) (domain.Articl
 	return svc.repo.GetById(ctx, id)
 }
 
-func (svc *articleService) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
-	return svc.repo.GetPublishedById(ctx, id)
+func (svc *articleService) GetPublishedById(ctx context.Context, id, userId int64) (domain.Article, error) {
+	art, err := svc.repo.GetPublishedById(ctx, id)
+	if err == nil {
+		go func() {
+			// 生产者也可以通过改批量来提高性能
+			er := svc.producer.ProduceReadEvent(
+				ctx,
+				events.ReadEvent{
+					// 即便你的消费者要用 art 的里面的数据，
+					// 让它去查询，你不要在 event 里面带
+					Uid: userId,
+					Aid: id,
+				})
+			if er == nil {
+				svc.log.Error("发送读者阅读事件失败")
+			}
+		}()
+	}
+	return art, err
 }
 
 func (svc *articleService) List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error) {

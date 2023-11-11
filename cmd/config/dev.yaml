@@ -5,3 +5,7 @@ redis:
   addr: "localhost:6379"
 
 test: "hello,babc"
+
+kafka:
+  addrs:
+    - "localhost:9094"
