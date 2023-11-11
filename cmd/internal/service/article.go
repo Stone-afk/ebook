@@ -36,6 +36,11 @@ func NewArticleService(repo repository.ArticleRepository, l logger.Logger) Artic
 	}
 }
 
+type readInfo struct {
+	uid int64
+	aid int64
+}
+
 func NewArticleServiceV1(
 	authorRepo repository.ArticleAuthorRepository,
 	readerRepo repository.ArticleReaderRepository,

@@ -5,6 +5,7 @@ import (
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/pkg/logger"
+	"golang.org/x/sync/errgroup"
 )
 
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/service/interactive.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/service/mocks/interactive.mock.go
@@ -23,7 +24,35 @@ type interactiveService struct {
 }
 
 func (svc *interactiveService) Get(ctx context.Context, biz string, bizId, userId int64) (domain.Interactive, error) {
-	panic("")
+	// 按照 repository 的语义(完成 domain.Interactive 的完整构造)，你这里拿到的就应该是包含全部字段的
+	var (
+		eg        errgroup.Group
+		intr      domain.Interactive
+		liked     bool
+		collected bool
+	)
+	eg.Go(func() error {
+		var err error
+		intr, err = svc.repo.Get(ctx, biz, bizId)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		liked, err = svc.repo.Liked(ctx, biz, bizId, userId)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		collected, err = svc.repo.Collected(ctx, biz, bizId, userId)
+		return err
+	})
+	err := eg.Wait()
+	if err != nil {
+		return domain.Interactive{}, err
+	}
+	intr.Liked = liked
+	intr.Collected = collected
+	return intr, err
 }
 
 func (svc *interactiveService) Like(ctx context.Context, biz string, bizId int64, userId int64) error {

@@ -35,7 +35,32 @@ func NewCachedInteractiveRepository(dao interactive.InteractiveDAO,
 
 func (repo *interactiveRepository) Get(ctx context.Context,
 	biz string, bizId int64) (domain.Interactive, error) {
-	panic("")
+	// 要从缓存拿出来阅读数，点赞数和收藏数
+	intr, err := repo.cache.Get(ctx, biz, bizId)
+	if err == nil {
+		return intr, nil
+	}
+	// 但不是所有的结构体都是可比较的
+	//if intr == (domain.Interactive{}) {
+	//
+	//}
+	// 在这里查询数据库
+	daoIntr, err := repo.dao.Get(ctx, biz, bizId)
+	if err != nil {
+		return domain.Interactive{}, err
+	}
+	intr = repo.toDomain(daoIntr)
+	go func() {
+		er := repo.cache.Set(ctx, biz, bizId, intr)
+		// 记录日志
+		if er != nil {
+			repo.l.Error("回写缓存失败",
+				logger.String("biz", biz),
+				logger.Int64("bizId", bizId),
+			)
+		}
+	}()
+	return intr, nil
 }
 
 func (repo *interactiveRepository) Liked(ctx context.Context,
@@ -98,4 +123,12 @@ func (repo *interactiveRepository) IncrReadCnt(ctx context.Context,
 	//}()
 	//return err
 	return repo.cache.IncrReadCntIfPresent(ctx, biz, bizId)
+}
+
+func (repo *interactiveRepository) toDomain(intr interactive.Interactive) domain.Interactive {
+	return domain.Interactive{
+		LikeCnt:    intr.LikeCnt,
+		CollectCnt: intr.CollectCnt,
+		ReadCnt:    intr.ReadCnt,
+	}
 }
