@@ -28,6 +28,7 @@ func (h Handler[T]) Setup(session sarama.ConsumerGroupSession) error {
 func (h Handler[T]) Cleanup(session sarama.ConsumerGroupSession) error {
 	return nil
 }
+
 func (h Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	msgs := claim.Messages()
 	for msg := range msgs {
