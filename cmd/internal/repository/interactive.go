@@ -17,6 +17,7 @@ type InteractiveRepository interface {
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, id int64, userId int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, userId int64) (bool, error)
+	AddRecord(ctx context.Context, aid int64, uid int64) error
 }
 
 type interactiveRepository struct {
@@ -32,6 +33,11 @@ func NewCachedInteractiveRepository(dao interactive.InteractiveDAO,
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (repo *interactiveRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 // BatchIncrReadCnt bizs 和 ids 的长度必须相等
