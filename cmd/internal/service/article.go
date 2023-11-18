@@ -6,6 +6,7 @@ import (
 	events "ebook/cmd/internal/events/article"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/pkg/logger"
+	"time"
 )
 
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/service/article.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/service/mocks/article.mock.go
@@ -29,12 +30,58 @@ type articleService struct {
 	repo     repository.ArticleRepository
 	producer events.Producer
 	log      logger.Logger
+
+	ch chan readInfo
 }
 
-func NewArticleService(repo repository.ArticleRepository, l logger.Logger) ArticleService {
+func NewArticleService(repo repository.ArticleRepository,
+	l logger.Logger, producer events.Producer) ArticleService {
 	return &articleService{
-		repo: repo,
-		log:  l,
+		repo:     repo,
+		log:      l,
+		producer: producer,
+	}
+}
+
+func NewArticleServiceV2(repo repository.ArticleRepository,
+	l logger.Logger,
+	producer events.Producer) ArticleService {
+	ch := make(chan readInfo, 10)
+	go func() {
+		for {
+			uids := make([]int64, 0, 10)
+			aids := make([]int64, 0, 10)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			for i := 0; i < 10; i++ {
+				select {
+				case info, ok := <-ch:
+					if !ok {
+						cancel()
+						return
+					}
+					uids = append(uids, info.uid)
+					aids = append(aids, info.aid)
+				case <-ctx.Done():
+					break
+				}
+			}
+			cancel()
+			ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+			err := producer.ProduceReadEventV1(ctx, events.ReadEventV1{
+				Uids: uids,
+				Aids: aids,
+			})
+			if err == nil {
+				l.Error("发送读者阅读事件失败")
+			}
+			cancel()
+		}
+	}()
+	return &articleService{
+		repo:     repo,
+		producer: producer,
+		log:      l,
+		ch:       ch,
 	}
 }
 
