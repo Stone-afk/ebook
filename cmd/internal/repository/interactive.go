@@ -11,11 +11,13 @@ import (
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/interactive.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/interactive.mock.go
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
+	BatchIncrReadCnt(ctx context.Context, biz []string, bizIds []int64) error
 	IncrLike(ctx context.Context, biz string, bizId, userId int64) error
 	DecrLike(ctx context.Context, biz string, bizId, userId int64) error
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, id int64, userId int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, userId int64) (bool, error)
+	AddRecord(ctx context.Context, aid int64, uid int64) error
 }
 
 type interactiveRepository struct {
@@ -31,6 +33,25 @@ func NewCachedInteractiveRepository(dao interactive.InteractiveDAO,
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (repo *interactiveRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+// BatchIncrReadCnt bizs 和 ids 的长度必须相等
+func (repo *interactiveRepository) BatchIncrReadCnt(ctx context.Context,
+	bizs []string, bizIds []int64) error {
+	// 在这里要不要检测 bizs 和 ids 的长度是否相等？
+	err := repo.dao.BatchIncrReadCnt(ctx, bizs, bizIds)
+	if err != nil {
+		return err
+	}
+	// 你也要批量的去修改 redis，所以就要去改 lua 脚本
+	// c.cache.IncrReadCntIfPresent()
+	// TODO, 等写新的 lua 脚本/或者用 pipeline
+	return nil
 }
 
 func (repo *interactiveRepository) Get(ctx context.Context,
