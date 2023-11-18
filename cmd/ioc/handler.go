@@ -6,6 +6,7 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/handler/middleware"
 	loggerMiddleware "ebook/cmd/pkg/ginx/middleware/logger"
+	"ebook/cmd/pkg/ginx/middleware/metric"
 	limitMiddleware "ebook/cmd/pkg/ginx/middleware/ratelimit"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/ratelimit"
@@ -27,6 +28,7 @@ func InitWebServer(mdls []gin.HandlerFunc, userHdl *handler.UserHandler,
 	userHdl.RegisterRoutes(server)
 	articleHdl.RegisterRoutes(server)
 	oauth2WechatHdl.RegisterRoutes(server)
+	(&handler.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
 
@@ -41,8 +43,16 @@ func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler, l logger.Logge
 		ok = viper.GetBool("web.logRespBody")
 		bd.AllowRespBody(ok)
 	})
+	mb := &metric.MiddlewareBuilder{
+		Namespace:  "web server",
+		Subsystem:  "ebook",
+		Name:       "gin_http",
+		Help:       "统计 GIN 的 HTTP 接口",
+		InstanceID: "my-instance-1",
+	}
 	return []gin.HandlerFunc{
 		corsHdl(),
+		mb.Build(),
 		bd.Build(),
 		sessions.Sessions("SESS", memstore.NewStore(handler.SessAuthKey, handler.SessEncryptionKey)),
 		middleware.NewJWTLoginMiddlewareBuilder(jwtHdl).Build(),
