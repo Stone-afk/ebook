@@ -1,6 +1,8 @@
 package ioc
 
 import (
+	"ebook/cmd/internal/events"
+	"ebook/cmd/internal/events/article"
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 )
@@ -32,6 +34,6 @@ func NewSyncProducer(client sarama.Client) sarama.SyncProducer {
 }
 
 // NewConsumers 面临的问题依旧是所有的 Consumer 在这里注册一下
-//func NewConsumers(c1 *article.InteractiveReadEventBatchConsumer) []events.Consumer {
-//
-//}
+func NewConsumers(c *article.InteractiveReadEventBatchConsumer) []events.Consumer {
+	return []events.Consumer{c}
+}
