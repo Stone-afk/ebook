@@ -18,6 +18,8 @@ type InteractiveRepository interface {
 	Liked(ctx context.Context, biz string, id int64, userId int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, userId int64) (bool, error)
 	AddRecord(ctx context.Context, aid int64, uid int64) error
+	AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error
+	GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error)
 }
 
 type interactiveRepository struct {
@@ -26,13 +28,23 @@ type interactiveRepository struct {
 	l     logger.Logger
 }
 
-func NewCachedInteractiveRepository(dao interactive.InteractiveDAO,
+func NewInteractiveRepository(dao interactive.InteractiveDAO,
 	cache cache.InteractiveCache, l logger.Logger) InteractiveRepository {
 	return &interactiveRepository{
 		dao:   dao,
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (repo *interactiveRepository) GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (repo *interactiveRepository) AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (repo *interactiveRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {

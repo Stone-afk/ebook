@@ -16,11 +16,28 @@ type InteractiveService interface {
 	// CancelLike 取消点赞
 	CancelLike(ctx context.Context, biz string, bizId int64, userId int64) error
 	Get(ctx context.Context, biz string, bizId, userId int64) (domain.Interactive, error)
+	// Collect 收藏
+	Collect(ctx context.Context, biz string, bizId, cid, uid int64) error
+	GetByIds(ctx context.Context, biz string, bizIds []int64) (map[int64]domain.Interactive, error)
 }
 
 type interactiveService struct {
 	repo repository.InteractiveRepository
 	l    logger.Logger
+}
+
+func NewInteractiveService(repo repository.InteractiveRepository,
+	l logger.Logger) InteractiveService {
+	return &interactiveService{
+		repo: repo,
+		l:    l,
+	}
+}
+
+func (i *interactiveService) GetByIds(ctx context.Context, biz string,
+	bizIds []int64) (map[int64]domain.Interactive, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (svc *interactiveService) Get(ctx context.Context, biz string, bizId, userId int64) (domain.Interactive, error) {
@@ -66,4 +83,10 @@ func (svc *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizI
 
 func (svc *interactiveService) CancelLike(ctx context.Context, biz string, bizId int64, userId int64) error {
 	return svc.repo.DecrLike(ctx, biz, bizId, userId)
+}
+
+// Collect 收藏
+func (svc *interactiveService) Collect(ctx context.Context,
+	biz string, bizId, cid, uid int64) error {
+	return svc.repo.AddCollectionItem(ctx, biz, bizId, cid, uid)
 }

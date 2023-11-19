@@ -17,6 +17,11 @@ func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 	}
 }
 
+func (dao *GORMInteractiveDAO) GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // BatchIncrReadCnt
 // biz = a, bizid = 1
 // biz = a, bizid = 1
