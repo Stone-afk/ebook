@@ -7,27 +7,36 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
+	"ebook/cmd/internal/repository/dao/article"
+	"ebook/cmd/internal/repository/dao/interactive"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 )
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	wire.Build(
 		// 最基础的第三方依赖
 		ioc.InitDB, ioc.InitRedis,
 		ioc.InitLogger,
+		ioc.InitKafka,
+		ioc.NewConsumers,
+		ioc.NewSyncProducer,
 
 		// 初始化 DAO
 		user.NewGORMUserDAO,
+		article.NewGORMArticleDAO,
+		interactive.NewGORMInteractiveDAO,
 
+		cache.NewRedisInteractiveCache,
 		cache.NewRedisUserCache,
 		cache.NewCodeCache,
 
 		repository.NewUserRepository,
 		repository.NewCodeRepository,
+		repository.NewCachedInteractiveRepository,
+		repository.NewArticleRepository,
 
 		service.NewUserService,
 		service.NewCodeService,
@@ -45,7 +54,8 @@ func InitWebServer() *gin.Engine {
 		//gin.Default,
 		ioc.InitMiddlewares,
 		ioc.InitWebServer,
+		// 组装我这个结构体的所有字段
+		wire.Struct(new(App), "*"),
 	)
-
-	return new(gin.Engine)
+	return new(App)
 }
