@@ -34,7 +34,7 @@ func NewInteractiveService(repo repository.InteractiveRepository,
 	}
 }
 
-func (i *interactiveService) GetByIds(ctx context.Context, biz string,
+func (svc *interactiveService) GetByIds(ctx context.Context, biz string,
 	bizIds []int64) (map[int64]domain.Interactive, error) {
 	//TODO implement me
 	panic("implement me")
