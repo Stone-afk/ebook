@@ -18,8 +18,10 @@ func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 }
 
 func (dao *GORMInteractiveDAO) GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error) {
-	//TODO implement me
-	panic("implement me")
+	var res []Interactive
+	err := dao.db.WithContext(ctx).
+		Where("biz = ? AND id IN ?", biz, ids).Find(&res).Error
+	return res, err
 }
 
 // BatchIncrReadCnt

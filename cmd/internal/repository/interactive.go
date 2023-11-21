@@ -6,6 +6,7 @@ import (
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/interactive"
 	"ebook/cmd/pkg/logger"
+	"github.com/ecodeclub/ekit/slice"
 )
 
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/interactive.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/interactive.mock.go
@@ -38,8 +39,14 @@ func NewInteractiveRepository(dao interactive.InteractiveDAO,
 }
 
 func (repo *interactiveRepository) GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error) {
-	//TODO implement me
-	panic("implement me")
+	vals, err := repo.dao.GetByIds(ctx, biz, ids)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map[interactive.Interactive, domain.Interactive](vals,
+		func(idx int, src interactive.Interactive) domain.Interactive {
+			return repo.toDomain(src)
+		}), nil
 }
 
 func (repo *interactiveRepository) AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error {
