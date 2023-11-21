@@ -62,7 +62,20 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	//	ijwt.UserClaims](h.Like))
 	pub.POST("/like", ginx.WrapBodyAndToken[LikeReq,
 		ijwt.UserClaims](h.l, h.Like))
+	pub.POST("/collect", ginx.WrapBodyAndToken[CollectReq,
+		ijwt.UserClaims](h.l, h.Collect))
 
+}
+
+func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	err := h.intrSvc.Collect(ctx, h.biz, req.Id, req.Cid, uc.UserId)
+	if err != nil {
+		return Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return Result{Msg: "OK"}, nil
 }
 
 func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {

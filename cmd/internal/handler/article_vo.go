@@ -40,6 +40,11 @@ type ListReq struct {
 	Limit  int `json:"limit"`
 }
 
+type CollectReq struct {
+	Id  int64 `json:"id"`
+	Cid int64 `json:"cid"`
+}
+
 func (req ArticleReq) toDomain(userId int64) domain.Article {
 	return domain.Article{
 		Id:      req.Id,

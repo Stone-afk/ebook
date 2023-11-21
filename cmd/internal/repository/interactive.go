@@ -50,8 +50,16 @@ func (repo *interactiveRepository) GetByIds(ctx context.Context, biz string, ids
 }
 
 func (repo *interactiveRepository) AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error {
-	//TODO implement me
-	panic("implement me")
+	err := repo.dao.InsertCollectionBiz(ctx, interactive.UserCollectionBiz{
+		Biz:   biz,
+		BizId: bizId,
+		Cid:   cid,
+		Uid:   uid,
+	})
+	if err != nil {
+		return err
+	}
+	return repo.cache.IncrCollectCntIfPresent(ctx, biz, bizId)
 }
 
 func (repo *interactiveRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {
