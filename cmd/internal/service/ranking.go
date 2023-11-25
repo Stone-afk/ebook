@@ -46,9 +46,13 @@ func (svc *BatchRankingService) RankTopN(ctx context.Context) error {
 	panic("implement me")
 }
 
-func (svc *BatchRankingService) TopN(ctx context.Context) ([]domain.Article, error) {
+func (svc *BatchRankingService) rankTopN(ctx context.Context) ([]domain.Article, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (svc *BatchRankingService) TopN(ctx context.Context) ([]domain.Article, error) {
+	return svc.repo.GetTopN(ctx)
 }
 
 // 这里不需要提前抽象算法，因为正常一家公司的算法都是固定的，不会今天切换到这里，明天切换到那里
