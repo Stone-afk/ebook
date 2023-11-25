@@ -42,8 +42,12 @@ func NewBatchRankingService(
 }
 
 func (svc *BatchRankingService) RankTopN(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	arts, err := svc.rankTopN(ctx)
+	if err != nil {
+		return err
+	}
+	// 准备放到缓存里面
+	return svc.repo.ReplaceTopN(ctx, arts)
 }
 
 func (svc *BatchRankingService) rankTopN(ctx context.Context) ([]domain.Article, error) {
