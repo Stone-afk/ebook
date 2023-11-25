@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"ebook/cmd/ioc"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
@@ -18,8 +20,15 @@ func main() {
 	//
 	//server := initServer()
 	//u.RegisterRoutes(server)
+	initPrometheus()
 	initViperWatch()
 	//initLogger()
+
+	cancel := ioc.InitOTEL()
+	defer func() {
+		cancel(context.Background())
+	}()
+
 	keys := viper.AllKeys()
 	println(keys)
 	setting := viper.AllSettings()
