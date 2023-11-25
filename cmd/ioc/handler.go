@@ -5,6 +5,7 @@ import (
 	"ebook/cmd/internal/handler"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/handler/middleware"
+	"ebook/cmd/pkg/ginx"
 	loggerMiddleware "ebook/cmd/pkg/ginx/middleware/logger"
 	"ebook/cmd/pkg/ginx/middleware/metric"
 	limitMiddleware "ebook/cmd/pkg/ginx/middleware/ratelimit"
@@ -15,6 +16,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"strings"
@@ -43,7 +45,16 @@ func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler, l logger.Logge
 		ok = viper.GetBool("web.logRespBody")
 		bd.AllowRespBody(ok)
 	})
-	mb := &metric.MiddlewareBuilder{
+	ginx.InitCounter(prometheus.CounterOpts{
+		Namespace: "web server",
+		Subsystem: "ebook",
+		Name:      "http_biz_code",
+		Help:      "GIN 中 HTTP 请求",
+		ConstLabels: map[string]string{
+			"instance_id": "my-instance-1",
+		},
+	})
+	pb := &metric.MiddlewareBuilder{
 		Namespace:  "web server",
 		Subsystem:  "ebook",
 		Name:       "gin_http",
@@ -52,7 +63,8 @@ func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler, l logger.Logge
 	}
 	return []gin.HandlerFunc{
 		corsHdl(),
-		mb.Build(),
+		pb.BuildResponseTime(),
+		pb.BuildActiveRequest(),
 		bd.Build(),
 		sessions.Sessions("SESS", memstore.NewStore(handler.SessAuthKey, handler.SessEncryptionKey)),
 		middleware.NewJWTLoginMiddlewareBuilder(jwtHdl).Build(),
