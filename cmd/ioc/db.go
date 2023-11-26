@@ -2,11 +2,14 @@ package ioc
 
 import (
 	"ebook/cmd/internal/repository/dao"
+	prometheus2 "ebook/cmd/pkg/gormx/callbacks/prometheus"
 	"ebook/cmd/pkg/logger"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
+	"gorm.io/plugin/prometheus"
 	"time"
 )
 
@@ -91,6 +94,36 @@ func InitDB() *gorm.DB {
 	// 要用原子操作
 	//return db
 	//})
+
+	// 接入 prometheus
+	err = db.Use(prometheus.New(prometheus.Config{
+		DBName: "ebook",
+		// 每 15 秒采集一些数据
+		RefreshInterval: 15,
+		MetricsCollector: []prometheus.MetricsCollector{
+			&prometheus.MySQL{
+				VariableNames: []string{"Threads_running"},
+			},
+		}, // user defined metrics
+	}))
+	if err != nil {
+		panic(err)
+	}
+	err = db.Use(tracing.NewPlugin(tracing.WithoutMetrics()))
+	if err != nil {
+		panic(err)
+	}
+	prom := prometheus2.Callbacks{
+		Namespace:  "server database",
+		Subsystem:  "ebook",
+		Name:       "gorm",
+		InstanceID: "my-instance-1",
+		Help:       "gorm DB 查询",
+	}
+	err = prom.Register(db)
+	if err != nil {
+		panic(err)
+	}
 
 	err = dao.InitTables(db)
 	if err != nil {
