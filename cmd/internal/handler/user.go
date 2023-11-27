@@ -2,6 +2,7 @@ package handler
 
 import (
 	"ebook/cmd/internal/domain"
+	"ebook/cmd/internal/errs"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
 	regexp "github.com/dlclark/regexp2"
@@ -225,7 +226,10 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 	}
 	u, err := h.svc.Login(ctx, req.Email, req.Password)
 	if err == service.ErrInvalidUserOrPassword {
-		ctx.String(http.StatusOK, "用户名或者密码不正确，请重试")
+		ctx.JSON(http.StatusOK, Result{
+			Code: errs.UserInvalidOrPassword,
+			Msg:  "用户不存在或者密码错误",
+		})
 		return
 	}
 	sess := sessions.Default(ctx)
@@ -255,7 +259,10 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 	}
 	u, err := h.svc.Login(ctx, req.Email, req.Password)
 	if err == service.ErrInvalidUserOrPassword {
-		ctx.String(http.StatusOK, "用户名或者密码不正确，请重试")
+		ctx.JSON(http.StatusOK, Result{
+			Code: errs.UserInvalidOrPassword,
+			Msg:  "用户名或者密码不正确，请重试",
+		})
 		return
 	}
 	if err = h.SetLoginToken(ctx, u.Id); err != nil {

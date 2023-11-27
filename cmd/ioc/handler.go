@@ -5,12 +5,14 @@ import (
 	"ebook/cmd/internal/handler"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/handler/middleware"
+	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/pkg/ginx"
 	loggerMiddleware "ebook/cmd/pkg/ginx/middleware/logger"
 	"ebook/cmd/pkg/ginx/middleware/metric"
 	limitMiddleware "ebook/cmd/pkg/ginx/middleware/ratelimit"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/ratelimit"
+	redisx "ebook/cmd/pkg/redisx/hook/metrics"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -27,7 +29,7 @@ func InitWebServer(mdls []gin.HandlerFunc,
 	userHdl *handler.UserHandler,
 	oauth2WechatHdl *handler.OAuth2WechatHandler,
 	articleHdl *handler.ArticleHandler,
-	obHdl *handler.ObservabilityHandler, ) *gin.Engine {
+	obHdl *handler.ObservabilityHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
@@ -94,4 +96,19 @@ func corsHdl() gin.HandlerFunc {
 		},
 		MaxAge: 12 * time.Hour,
 	})
+}
+
+// InitUserCache 配合 PrometheusHook 使用
+func InitUserCache(client *redis.ClusterClient) cache.UserCache {
+	client.AddHook(redisx.NewPrometheusHook(
+		prometheus.SummaryOpts{
+			Namespace: "geekbang_daming",
+			Subsystem: "webook",
+			Name:      "gin_http",
+			Help:      "统计 GIN 的 HTTP 接口",
+			ConstLabels: map[string]string{
+				"biz": "user",
+			},
+		}))
+	panic("你别调用")
 }
