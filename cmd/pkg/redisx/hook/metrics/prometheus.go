@@ -13,20 +13,30 @@ type PrometheusHook struct {
 	vector *prometheus.SummaryVec
 }
 
-func NewPrometheusHook(
-	namespace string,
-	subsystem string,
-	instanceId string,
-	name string,
-) *PrometheusHook {
-	vector := prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      name,
-		ConstLabels: map[string]string{
-			"instance_id": instanceId,
-		},
-	}, []string{"cmd", "key_exist"})
+//func NewPrometheusHook(
+//	namespace string,
+//	subsystem string,
+//	instanceId string,
+//	name string,
+//) *PrometheusHook {
+//	vector := prometheus.NewSummaryVec(prometheus.SummaryOpts{
+//		Namespace: namespace,
+//		Subsystem: subsystem,
+//		Name:      name,
+//		ConstLabels: map[string]string{
+//			"instance_id": instanceId,
+//		},
+//	}, []string{"cmd", "key_exist"})
+//	return &PrometheusHook{
+//		vector: vector,
+//	}
+//}
+
+func NewPrometheusHook(opt prometheus.SummaryOpts) *PrometheusHook {
+	vector := prometheus.NewSummaryVec(opt,
+		// key_exist 是否命中缓存
+		[]string{"cmd", "key_exist"})
+	prometheus.MustRegister(vector)
 	return &PrometheusHook{
 		vector: vector,
 	}
