@@ -24,6 +24,7 @@ type ArticleRepository interface {
 	// SyncStatus 仅仅同步状态
 	SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error
 	List(ctx context.Context, author int64, offset, limit int) ([]domain.Article, error)
+	ListPub(ctx context.Context, uTime time.Time, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 }
@@ -63,6 +64,17 @@ func NewArticleRepositoryV2(db *gorm.DB, l logger.Logger) ArticleRepository {
 		db: db,
 		l:  l,
 	}
+}
+
+func (repo *articleRepository) ListPub(ctx context.Context, uTime time.Time, offset int, limit int) ([]domain.Article, error) {
+	val, err := repo.dao.ListPubByUtime(ctx, uTime, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map[article.PublishedArticle, domain.Article](val, func(idx int, src article.PublishedArticle) domain.Article {
+		// 偷懒写法
+		return repo.toDomain(article.Article(src))
+	}), nil
 }
 
 func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
