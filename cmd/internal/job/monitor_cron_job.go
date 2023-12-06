@@ -17,3 +17,11 @@ type CronJobBuilder struct {
 func (m *CronJobBuilder) Build(job Job) cron.Job {
 	panic("")
 }
+
+var _ cron.Job = (*cronJobAdapterFunc)(nil)
+
+type cronJobAdapterFunc func()
+
+func (c cronJobAdapterFunc) Run() {
+	c()
+}
