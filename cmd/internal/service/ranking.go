@@ -53,8 +53,10 @@ func (svc *BatchRankingService) RankTopN(ctx context.Context) error {
 }
 
 func (svc *BatchRankingService) rankTopN(ctx context.Context) ([]domain.Article, error) {
-	// 我只取七天内的数据
 	now := time.Now()
+	// 只计算七天内的，因为超过七天的我们可以认为绝对不可能成为热榜了
+	// 如果一个批次里面 utime 最小已经是七天之前的，我们就中断当前计算
+	ddl := now.Add(-time.Hour * 24 * 7)
 	// 先拿一批数据
 	offset := 0
 	type Score struct {
@@ -116,7 +118,8 @@ func (svc *BatchRankingService) rankTopN(ctx context.Context) ([]domain.Article,
 			}
 		}
 		// 一批已经处理完了，问题来了，我要不要进入下一批？我怎么知道还有没有？
-		if len(arts) < svc.BatchSize {
+		if len(arts) == 0 || len(arts) < svc.BatchSize ||
+			arts[len(arts)-1].Utime.Before(ddl) {
 			// 我这一批都没取够，我当然可以肯定没有下一批了
 			break
 		}
