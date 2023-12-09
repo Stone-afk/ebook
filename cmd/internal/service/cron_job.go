@@ -31,5 +31,9 @@ func NewCronJobService(
 }
 
 func (s *cronJobService) Preempt(ctx context.Context) (domain.CronJob, error) {
-	panic("")
+	j, err := s.repo.Preempt(ctx)
+	if err != nil {
+		return domain.CronJob{}, err
+	}
+	return j, nil
 }

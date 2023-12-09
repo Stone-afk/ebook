@@ -22,11 +22,15 @@ func NewPreemptCronJobRepository(dao job.JobDAO) CronJobRepository {
 	return &PreemptCronJobRepository{dao: dao}
 }
 
-func (p *PreemptCronJobRepository) Preempt(ctx context.Context) (domain.CronJob, error) {
-	panic("")
+func (repo *PreemptCronJobRepository) Preempt(ctx context.Context) (domain.CronJob, error) {
+	j, err := repo.dao.Preempt(ctx)
+	if err != nil {
+		return domain.CronJob{}, err
+	}
+	return repo.toDomain(j), nil
 }
 
-func (p *PreemptCronJobRepository) toEntity(j domain.CronJob) job.Job {
+func (repo *PreemptCronJobRepository) toEntity(j domain.CronJob) job.Job {
 	return job.Job{
 		Id:       j.Id,
 		Name:     j.Name,
@@ -35,7 +39,7 @@ func (p *PreemptCronJobRepository) toEntity(j domain.CronJob) job.Job {
 	}
 }
 
-func (p *PreemptCronJobRepository) toDomain(j job.Job) domain.CronJob {
+func (repo *PreemptCronJobRepository) toDomain(j job.Job) domain.CronJob {
 	return domain.CronJob{
 		Id:       j.Id,
 		Name:     j.Name,
