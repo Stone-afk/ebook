@@ -125,6 +125,7 @@ func (r *RankingJob) run() error {
 func (r *RankingJob) Close() error {
 	r.localLock.Lock()
 	lock := r.lock
+	r.lock = nil
 	r.localLock.Unlock()
 	// 释放锁
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
