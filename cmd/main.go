@@ -42,6 +42,13 @@ func main() {
 		}
 	}
 
+	app.cron.Start()
+	// 停掉所有的 jobs
+	defer func() {
+		ctx := app.cron.Stop()
+		<-ctx.Done()
+	}()
+
 	server := app.server
 	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "你好，你来了")
