@@ -7,7 +7,8 @@ const (
 	jobStatusRunning
 	// 不再需要调度了，比如说被终止了，或者被删除了。
 	// 我们这里没有严格区分这两种情况的必要性
-	jobStatusEnd
+	// 暂停调度
+	jobStatusPaused
 )
 
 type Job struct {
