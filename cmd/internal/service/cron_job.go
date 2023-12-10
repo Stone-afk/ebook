@@ -64,7 +64,6 @@ func (s *cronJobService) Preempt(ctx context.Context) (domain.CronJob, error) {
 
 	// 你抢占之后，你一直抢占着吗？
 	// 你要考虑一个释放的问题
-
 	j.CancelFunc = func() error {
 		//close(ch)
 		// 自己在这里释放掉

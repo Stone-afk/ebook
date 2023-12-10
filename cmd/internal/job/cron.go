@@ -76,15 +76,21 @@ func (l *LocalFuncExecutor) Exec(ctx context.Context, j domain.CronJob) error {
 
 // Scheduler 调度器
 type Scheduler struct {
-	svc service.CronJobService
-	l   logger.Logger
+	execs map[string]Executor
+	svc   service.CronJobService
+	l     logger.Logger
 }
 
 func NewScheduler(svc service.CronJobService, l logger.Logger) *Scheduler {
 	return &Scheduler{
-		svc: svc,
-		l:   l,
+		svc:   svc,
+		l:     l,
+		execs: make(map[string]Executor),
 	}
+}
+
+func (s *Scheduler) RegisterExecutor(exec Executor) {
+	s.execs[exec.Name()] = exec
 }
 
 // Start 开始调度。当被取消，或者超时的时候，就会结束调度
