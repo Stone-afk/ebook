@@ -11,6 +11,7 @@ import (
 var ErrNoMoreJob = repository.ErrNoMoreJob
 
 type CronJobService interface {
+	AddJob(ctx context.Context, j domain.CronJob) error
 	Preempt(ctx context.Context) (domain.CronJob, error)
 	ResetNextTime(ctx context.Context, j domain.CronJob) error
 	// 返回一个释放的方法，然后调用者取调
@@ -33,6 +34,11 @@ func NewCronJobService(
 		l:               l,
 		refreshInterval: time.Second * 10,
 	}
+}
+
+func (s *cronJobService) AddJob(ctx context.Context, j domain.CronJob) error {
+	j.NextTime = j.Next(time.Now())
+	return s.repo.AddJob(ctx, j)
 }
 
 func (s *cronJobService) Preempt(ctx context.Context) (domain.CronJob, error) {
@@ -75,7 +81,7 @@ func (s *cronJobService) Preempt(ctx context.Context) (domain.CronJob, error) {
 }
 
 func (s *cronJobService) ResetNextTime(ctx context.Context, j domain.CronJob) error {
-	next := j.NextTime()
+	next := j.Next(time.Now())
 	if next.IsZero() {
 		// 没有下一次
 		return s.repo.Stop(ctx, j.Id)

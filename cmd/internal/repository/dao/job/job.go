@@ -14,6 +14,13 @@ func NewGORMJobDAO(db *gorm.DB) JobDAO {
 	return &GORMJobDAO{db: db}
 }
 
+func (dao *GORMJobDAO) Insert(ctx context.Context, j Job) error {
+	now := time.Now().UnixMilli()
+	j.Ctime = now
+	j.Utime = now
+	return dao.db.WithContext(ctx).Create(&j).Error
+}
+
 func (dao *GORMJobDAO) Stop(ctx context.Context, id int64) error {
 	return dao.db.WithContext(ctx).Model(&Job{}).
 		Where("id = ?", id).Updates(map[string]any{
