@@ -9,6 +9,7 @@ import (
 var ErrNoMoreJob = gorm.ErrRecordNotFound
 
 type JobDAO interface {
+	Insert(ctx context.Context, j Job) error
 	Preempt(ctx context.Context) (Job, error)
 	Release(ctx context.Context, id int64) error
 	UpdateUtime(ctx context.Context, id int64) error
