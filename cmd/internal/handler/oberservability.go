@@ -9,6 +9,10 @@ import (
 
 type ObservabilityHandler struct{}
 
+func NewObservabilityHandler() *ObservabilityHandler {
+	return &ObservabilityHandler{}
+}
+
 func (h *ObservabilityHandler) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("test")
 	g.GET("/metric", func(ctx *gin.Context) {

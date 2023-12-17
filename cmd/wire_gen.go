@@ -17,6 +17,7 @@ import (
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
+	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
@@ -50,12 +51,35 @@ func InitApp() *App {
 	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
-	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler)
+	observabilityHandler := handler.NewObservabilityHandler()
+	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler, observabilityHandler)
 	interactiveReadEventBatchConsumer := article2.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
 	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
+	redisRankingCache := cache.NewRedisRankingCache(cmdable)
+	rankingLocalCache := cache.NewRankingLocalCache()
+	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, rankingLocalCache)
+	rankingService := service.NewBatchRankingService(interactiveService, articleService, rankingRepository)
+	rlockClient := ioc.InitRLockClient(cmdable)
+	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
+	cron := ioc.InitJobs(logger, rankingJob)
 	app := &App{
 		server:    engine,
 		consumers: v2,
+		cron:      cron,
 	}
 	return app
 }
+
+// wire.go:
+
+var rankServiceProvider = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRedisRankingCache, cache.NewRankingLocalCache)
+
+var interactiveServiceProvider = wire.NewSet(interactive.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache, repository.NewInteractiveRepository, service.NewInteractiveService)
+
+var articleServiceProvider = wire.NewSet(article.NewGORMArticleDAO, cache.NewRedisArticleCache, repository.NewArticleRepository, service.NewArticleService)
+
+var userServiceProvider = wire.NewSet(user.NewGORMUserDAO, cache.NewRedisUserCache, repository.NewUserRepository, service.NewUserService)
+
+var codeServiceProvider = wire.NewSet(cache.NewCodeCache, repository.NewCodeRepository, ioc.InitSMSService, service.NewCodeService)
+
+var wechatServiceProvider = wire.NewSet(ioc.InitWechatService, ioc.NewWechatHandlerConfig)

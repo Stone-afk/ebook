@@ -16,6 +16,47 @@ import (
 	"github.com/google/wire"
 )
 
+var rankServiceProvider = wire.NewSet(
+	service.NewBatchRankingService,
+	repository.NewCachedRankingRepository,
+	cache.NewRedisRankingCache,
+	cache.NewRankingLocalCache,
+)
+
+var interactiveServiceProvider = wire.NewSet(
+	interactive.NewGORMInteractiveDAO,
+	cache.NewRedisInteractiveCache,
+	repository.NewInteractiveRepository,
+	service.NewInteractiveService,
+)
+
+var articleServiceProvider = wire.NewSet(
+	article.NewGORMArticleDAO,
+	cache.NewRedisArticleCache,
+	repository.NewArticleRepository,
+	service.NewArticleService,
+)
+
+var userServiceProvider = wire.NewSet(
+	// 初始化 DAO
+	user.NewGORMUserDAO,
+	cache.NewRedisUserCache,
+	repository.NewUserRepository,
+	service.NewUserService,
+)
+
+var codeServiceProvider = wire.NewSet(
+	cache.NewCodeCache,
+	repository.NewCodeRepository,
+	ioc.InitSMSService,
+	service.NewCodeService,
+)
+
+var wechatServiceProvider = wire.NewSet(
+	ioc.InitWechatService,
+	ioc.NewWechatHandlerConfig,
+)
+
 func InitApp() *App {
 	wire.Build(
 		// 最基础的第三方依赖
@@ -24,38 +65,27 @@ func InitApp() *App {
 		ioc.InitKafka,
 		ioc.NewConsumers,
 		ioc.NewSyncProducer,
+		ioc.InitRLockClient,
+
+		ioc.InitJobs,
+		ioc.InitRankingJob,
 
 		// consumer
 		events.NewInteractiveReadEventBatchConsumer,
 		events.NewKafkaProducer,
 
-		// 初始化 DAO
-		user.NewGORMUserDAO,
-		article.NewGORMArticleDAO,
-		interactive.NewGORMInteractiveDAO,
-
-		cache.NewRedisInteractiveCache,
-		cache.NewRedisUserCache,
-		cache.NewCodeCache,
-
-		repository.NewUserRepository,
-		repository.NewCodeRepository,
-		repository.NewInteractiveRepository,
-		repository.NewArticleRepository,
-
-		service.NewUserService,
-		service.NewCodeService,
-		ioc.InitSMSService,
-		ioc.InitWechatService,
-		service.NewArticleService,
-		service.NewInteractiveService,
-
-		ioc.NewWechatHandlerConfig,
+		rankServiceProvider,
+		interactiveServiceProvider,
+		articleServiceProvider,
+		userServiceProvider,
+		codeServiceProvider,
+		wechatServiceProvider,
 
 		handler.NewOAuth2WechatHandler,
-		ijwt.NewRedisJWTHandler,
 		handler.NewUserHandler,
 		handler.NewArticleHandler,
+		handler.NewObservabilityHandler,
+		ijwt.NewRedisJWTHandler,
 		// 你中间件呢？
 		// 你注册路由呢？
 		// 你这个地方没有用到前面的任何东西
