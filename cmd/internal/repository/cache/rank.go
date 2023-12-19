@@ -19,6 +19,14 @@ type RedisRankingCache struct {
 	expiration time.Duration
 }
 
+func NewRedisRankingCache(client redis.Cmdable) *RedisRankingCache {
+	return &RedisRankingCache{
+		key:        "ranking:article",
+		client:     client,
+		expiration: time.Minute * 3,
+	}
+}
+
 func (r *RedisRankingCache) Set(ctx context.Context, arts []domain.Article) error {
 	// 这里不会缓存内容
 	for i := 0; i < len(arts); i++ {
