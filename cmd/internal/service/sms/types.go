@@ -2,6 +2,9 @@ package sms
 
 import "context"
 
+// Service 发送短信的抽象
+// 目前你可以理解为，这是一个为了适配不同的短信供应商的抽象
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/service/sms/types.go -package=smsmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/service/sms/mocks/sms.mock.go
 type Service interface {
 	// Send tpl 短信模版， args 模版所需参数，numbers 电话号码和手机号码等
 	Send(ctx context.Context, tpl string, args []string, numbers ...string) error
