@@ -2,12 +2,15 @@ package article
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/IBM/sarama"
 )
 
+const topicReadEvent = "article_read_event"
+
 type Producer interface {
 	ProduceReadEvent(ctx context.Context, evt ReadEvent) error
-	ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error
+	//ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error
 }
 
 type ReadEvent struct {
@@ -30,12 +33,19 @@ func NewKafkaProducer(pc sarama.SyncProducer) Producer {
 	}
 }
 
-func (k *KafkaProducer) ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error {
-	//TODO implement me
-	panic("implement me")
-}
+//func (k *KafkaProducer) ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error {
+//	//TODO implement me
+//	panic("implement me")
+//}
 
 func (k *KafkaProducer) ProduceReadEvent(ctx context.Context, evt ReadEvent) error {
-	//TODO implement me
-	panic("implement me")
+	val, err := json.Marshal(evt)
+	if err != nil {
+		return err
+	}
+	_, _, err = k.producer.SendMessage(&sarama.ProducerMessage{
+		Topic: topicReadEvent,
+		Value: sarama.ByteEncoder(val),
+	})
+	return err
 }

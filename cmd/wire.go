@@ -10,6 +10,7 @@ import (
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
 	"ebook/cmd/internal/repository/dao/interactive"
+	"ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
@@ -57,6 +58,13 @@ var wechatServiceProvider = wire.NewSet(
 	ioc.NewWechatHandlerConfig,
 )
 
+var jobSvcProvider = wire.NewSet(
+	job.NewGORMJobDAO,
+	repository.NewPreemptCronJobRepository,
+	service.NewCronJobService,
+)
+
+//go:generate wire
 func InitApp() *App {
 	wire.Build(
 		// 最基础的第三方依赖

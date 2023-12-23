@@ -43,10 +43,14 @@ type articleRepository struct {
 	l  logger.Logger
 }
 
-func NewArticleRepository(dao article.ArticleDAO, userRepo UserRepository, l logger.Logger) ArticleRepository {
+func NewArticleRepository(dao article.ArticleDAO,
+	cache cache.ArticleCache,
+	userRepo UserRepository,
+	l logger.Logger) ArticleRepository {
 	return &articleRepository{
 		userRepo: userRepo,
 		dao:      dao,
+		cache:    cache,
 		l:        l,
 	}
 }
@@ -88,7 +92,7 @@ func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (
 	if err != nil {
 		return domain.Article{}, err
 	}
-	return domain.Article{
+	res := domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,
 		Status:  domain.ArticleStatus(art.Status),
@@ -99,7 +103,15 @@ func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (
 		},
 		Ctime: time.UnixMilli(art.Ctime),
 		Utime: time.UnixMilli(art.Utime),
-	}, nil
+	}
+	// 也可以同步
+	go func() {
+		if err = repo.cache.SetPub(ctx, res); err != nil {
+			repo.l.Error("缓存已发表文章失败",
+				logger.Error(err), logger.Int64("aid", art.Id))
+		}
+	}()
+	return res, nil
 }
 
 func (repo *articleRepository) GetById(ctx context.Context, id int64) (domain.Article, error) {
