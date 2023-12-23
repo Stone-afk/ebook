@@ -6,6 +6,7 @@ package cachemocks
 
 import (
 	context "context"
+	domain "ebook/cmd/internal/domain"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -48,6 +49,35 @@ func (mr *MockInteractiveCacheMockRecorder) DecrLikeCntIfPresent(ctx, biz, bizId
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecrLikeCntIfPresent", reflect.TypeOf((*MockInteractiveCache)(nil).DecrLikeCntIfPresent), ctx, biz, bizId)
 }
 
+// Get mocks base method.
+func (m *MockInteractiveCache) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, biz, bizId)
+	ret0, _ := ret[0].(domain.Interactive)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockInteractiveCacheMockRecorder) Get(ctx, biz, bizId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockInteractiveCache)(nil).Get), ctx, biz, bizId)
+}
+
+// IncrCollectCntIfPresent mocks base method.
+func (m *MockInteractiveCache) IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrCollectCntIfPresent", ctx, biz, bizId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrCollectCntIfPresent indicates an expected call of IncrCollectCntIfPresent.
+func (mr *MockInteractiveCacheMockRecorder) IncrCollectCntIfPresent(ctx, biz, bizId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrCollectCntIfPresent", reflect.TypeOf((*MockInteractiveCache)(nil).IncrCollectCntIfPresent), ctx, biz, bizId)
+}
+
 // IncrLikeCntIfPresent mocks base method.
 func (m *MockInteractiveCache) IncrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error {
 	m.ctrl.T.Helper()
@@ -74,4 +104,18 @@ func (m *MockInteractiveCache) IncrReadCntIfPresent(ctx context.Context, biz str
 func (mr *MockInteractiveCacheMockRecorder) IncrReadCntIfPresent(ctx, biz, bizId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrReadCntIfPresent", reflect.TypeOf((*MockInteractiveCache)(nil).IncrReadCntIfPresent), ctx, biz, bizId)
+}
+
+// Set mocks base method.
+func (m *MockInteractiveCache) Set(ctx context.Context, biz string, bizId int64, intr domain.Interactive) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Set", ctx, biz, bizId, intr)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Set indicates an expected call of Set.
+func (mr *MockInteractiveCacheMockRecorder) Set(ctx, biz, bizId, intr interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockInteractiveCache)(nil).Set), ctx, biz, bizId, intr)
 }

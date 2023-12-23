@@ -6,6 +6,7 @@ package daomocks
 
 import (
 	context "context"
+	interactive "ebook/cmd/internal/repository/dao/interactive"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -34,6 +35,20 @@ func (m *MockInteractiveDAO) EXPECT() *MockInteractiveDAOMockRecorder {
 	return m.recorder
 }
 
+// BatchIncrReadCnt mocks base method.
+func (m *MockInteractiveDAO) BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchIncrReadCnt", ctx, bizs, ids)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BatchIncrReadCnt indicates an expected call of BatchIncrReadCnt.
+func (mr *MockInteractiveDAOMockRecorder) BatchIncrReadCnt(ctx, bizs, ids interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchIncrReadCnt", reflect.TypeOf((*MockInteractiveDAO)(nil).BatchIncrReadCnt), ctx, bizs, ids)
+}
+
 // DeleteLikeInfo mocks base method.
 func (m *MockInteractiveDAO) DeleteLikeInfo(ctx context.Context, biz string, bizId, uid int64) error {
 	m.ctrl.T.Helper()
@@ -48,6 +63,66 @@ func (mr *MockInteractiveDAOMockRecorder) DeleteLikeInfo(ctx, biz, bizId, uid in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLikeInfo", reflect.TypeOf((*MockInteractiveDAO)(nil).DeleteLikeInfo), ctx, biz, bizId, uid)
 }
 
+// Get mocks base method.
+func (m *MockInteractiveDAO) Get(ctx context.Context, biz string, bizId int64) (interactive.Interactive, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, biz, bizId)
+	ret0, _ := ret[0].(interactive.Interactive)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockInteractiveDAOMockRecorder) Get(ctx, biz, bizId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockInteractiveDAO)(nil).Get), ctx, biz, bizId)
+}
+
+// GetByIds mocks base method.
+func (m *MockInteractiveDAO) GetByIds(ctx context.Context, biz string, ids []int64) ([]interactive.Interactive, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByIds", ctx, biz, ids)
+	ret0, _ := ret[0].([]interactive.Interactive)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByIds indicates an expected call of GetByIds.
+func (mr *MockInteractiveDAOMockRecorder) GetByIds(ctx, biz, ids interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByIds", reflect.TypeOf((*MockInteractiveDAO)(nil).GetByIds), ctx, biz, ids)
+}
+
+// GetCollectionInfo mocks base method.
+func (m *MockInteractiveDAO) GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (interactive.UserCollectionBiz, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCollectionInfo", ctx, biz, bizId, uid)
+	ret0, _ := ret[0].(interactive.UserCollectionBiz)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCollectionInfo indicates an expected call of GetCollectionInfo.
+func (mr *MockInteractiveDAOMockRecorder) GetCollectionInfo(ctx, biz, bizId, uid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCollectionInfo", reflect.TypeOf((*MockInteractiveDAO)(nil).GetCollectionInfo), ctx, biz, bizId, uid)
+}
+
+// GetLikeInfo mocks base method.
+func (m *MockInteractiveDAO) GetLikeInfo(ctx context.Context, biz string, bizId, uid int64) (interactive.UserLikeBiz, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLikeInfo", ctx, biz, bizId, uid)
+	ret0, _ := ret[0].(interactive.UserLikeBiz)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLikeInfo indicates an expected call of GetLikeInfo.
+func (mr *MockInteractiveDAOMockRecorder) GetLikeInfo(ctx, biz, bizId, uid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLikeInfo", reflect.TypeOf((*MockInteractiveDAO)(nil).GetLikeInfo), ctx, biz, bizId, uid)
+}
+
 // IncrReadCnt mocks base method.
 func (m *MockInteractiveDAO) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
 	m.ctrl.T.Helper()
@@ -60,6 +135,20 @@ func (m *MockInteractiveDAO) IncrReadCnt(ctx context.Context, biz string, bizId 
 func (mr *MockInteractiveDAOMockRecorder) IncrReadCnt(ctx, biz, bizId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrReadCnt", reflect.TypeOf((*MockInteractiveDAO)(nil).IncrReadCnt), ctx, biz, bizId)
+}
+
+// InsertCollectionBiz mocks base method.
+func (m *MockInteractiveDAO) InsertCollectionBiz(ctx context.Context, cb interactive.UserCollectionBiz) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InsertCollectionBiz", ctx, cb)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// InsertCollectionBiz indicates an expected call of InsertCollectionBiz.
+func (mr *MockInteractiveDAOMockRecorder) InsertCollectionBiz(ctx, cb interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertCollectionBiz", reflect.TypeOf((*MockInteractiveDAO)(nil).InsertCollectionBiz), ctx, cb)
 }
 
 // InsertLikeInfo mocks base method.
