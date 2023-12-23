@@ -14,6 +14,7 @@ import (
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
 	"ebook/cmd/internal/repository/dao/interactive"
+	"ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/ioc"
@@ -22,6 +23,7 @@ import (
 
 // Injectors from wire.go:
 
+//go:generate wire
 func InitApp() *App {
 	cmdable := ioc.InitRedis()
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
@@ -41,7 +43,8 @@ func InitApp() *App {
 	wechatHandlerConfig := ioc.NewWechatHandlerConfig()
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(oauth2Service, userService, jwtHandler, wechatHandlerConfig)
 	articleDAO := article.NewGORMArticleDAO(db)
-	articleRepository := repository.NewArticleRepository(articleDAO, userRepository, logger)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := repository.NewArticleRepository(articleDAO, articleCache, userRepository, logger)
 	client := ioc.InitKafka()
 	syncProducer := ioc.NewSyncProducer(client)
 	producer := article2.NewKafkaProducer(syncProducer)
@@ -83,3 +86,5 @@ var userServiceProvider = wire.NewSet(user.NewGORMUserDAO, cache.NewRedisUserCac
 var codeServiceProvider = wire.NewSet(cache.NewCodeCache, repository.NewCodeRepository, ioc.InitSMSService, service.NewCodeService)
 
 var wechatServiceProvider = wire.NewSet(ioc.InitWechatService, ioc.NewWechatHandlerConfig)
+
+var jobSvcProvider = wire.NewSet(job.NewGORMJobDAO, repository.NewPreemptCronJobRepository, service.NewCronJobService)

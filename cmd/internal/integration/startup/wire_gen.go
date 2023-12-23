@@ -7,13 +7,20 @@
 package startup
 
 import (
+	article2 "ebook/cmd/internal/events/article"
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/handler/jwt"
+	"ebook/cmd/internal/job"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
+	"ebook/cmd/internal/repository/dao/async_sms"
+	"ebook/cmd/internal/repository/dao/interactive"
+	job2 "ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
+	"ebook/cmd/internal/service/sms"
+	"ebook/cmd/internal/service/sms/async"
 	"ebook/cmd/ioc"
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
@@ -21,6 +28,7 @@ import (
 
 // Injectors from wire.go:
 
+//go:generate wire
 func InitWebServer() *gin.Engine {
 	cmdable := InitRedis()
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
@@ -40,18 +48,40 @@ func InitWebServer() *gin.Engine {
 	wechatHandlerConfig := ioc.NewWechatHandlerConfig()
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(oauth2Service, userService, jwtHandler, wechatHandlerConfig)
 	articleDAO := article.NewGORMArticleDAO(gormDB)
-	articleRepository := repository.NewArticleRepository(articleDAO, logger)
-	articleService := service.NewArticleService(articleRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, logger)
-	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := repository.NewArticleRepository(articleDAO, articleCache, userRepository, logger)
+	client := InitKafka()
+	syncProducer := NewSyncProducer(client)
+	producer := article2.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, logger, producer)
+	interactiveDAO := interactive.NewGORMInteractiveDAO(gormDB)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
+	observabilityHandler := handler.NewObservabilityHandler()
+	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler, observabilityHandler)
 	return engine
 }
 
 func InitArticleHandler(dao article.ArticleDAO) *handler.ArticleHandler {
+	cmdable := InitRedis()
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	gormDB := InitTestDB()
+	userDAO := user.NewGORMUserDAO(gormDB)
+	userCache := cache.NewRedisUserCache(cmdable)
+	userRepository := repository.NewUserRepository(userDAO, userCache)
 	logger := InitLogger()
-	articleRepository := repository.NewArticleRepository(dao, logger)
-	articleService := service.NewArticleService(articleRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, logger)
+	articleRepository := repository.NewArticleRepository(dao, articleCache, userRepository, logger)
+	client := InitKafka()
+	syncProducer := NewSyncProducer(client)
+	producer := article2.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, logger, producer)
+	interactiveDAO := interactive.NewGORMInteractiveDAO(gormDB)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
 	return articleHandler
 }
 
@@ -66,6 +96,36 @@ func InitUserSvc() service.UserService {
 	return userService
 }
 
+func InitAsyncSmsService(svc sms.Service) *async.Service {
+	gormDB := InitTestDB()
+	asyncSmsDAO := async_sms.NewGORMAsyncSmsDAO(gormDB)
+	asyncSmsRepository := repository.NewAsyncSMSRepository(asyncSmsDAO)
+	logger := InitLogger()
+	asyncService := async.NewService(svc, asyncSmsRepository, logger)
+	return asyncService
+}
+
+func InitInteractiveService() service.InteractiveService {
+	gormDB := InitTestDB()
+	interactiveDAO := interactive.NewGORMInteractiveDAO(gormDB)
+	cmdable := InitRedis()
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	logger := InitLogger()
+	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	return interactiveService
+}
+
+func InitJobScheduler() *job.Scheduler {
+	gormDB := InitTestDB()
+	jobDAO := job2.NewGORMJobDAO(gormDB)
+	cronJobRepository := repository.NewPreemptCronJobRepository(jobDAO)
+	logger := InitLogger()
+	cronJobService := service.NewCronJobService(cronJobRepository, logger)
+	scheduler := job.NewScheduler(cronJobService, logger)
+	return scheduler
+}
+
 func InitJwtHandler() jwt.Handler {
 	cmdable := InitRedis()
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
@@ -74,8 +134,18 @@ func InitJwtHandler() jwt.Handler {
 
 // wire.go:
 
-var thirdProvider = wire.NewSet(InitRedis, InitTestDB, InitLogger)
+var thirdProvider = wire.NewSet(InitRedis, InitTestDB,
+	InitLogger,
+	NewSyncProducer,
+	InitKafka,
+)
 
 var userSvcProvider = wire.NewSet(user.NewGORMUserDAO, cache.NewRedisUserCache, repository.NewUserRepository, service.NewUserService)
 
-var articleSvcProvider = wire.NewSet(article.NewGORMArticleDAO, repository.NewArticleRepository, service.NewArticleService)
+var articleSvcProvider = wire.NewSet(article.NewGORMArticleDAO, article2.NewKafkaProducer, cache.NewRedisArticleCache, repository.NewArticleRepository, service.NewArticleService)
+
+var interactiveSvcProvider = wire.NewSet(interactive.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache, repository.NewInteractiveRepository, service.NewInteractiveService)
+
+var rankServiceProvider = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRedisRankingCache, cache.NewRankingLocalCache)
+
+var jobProviderSet = wire.NewSet(job2.NewGORMJobDAO, repository.NewPreemptCronJobRepository, service.NewCronJobService)

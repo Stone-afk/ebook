@@ -1,6 +1,7 @@
 package startup
 
 import (
+	"context"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -11,6 +12,10 @@ func InitRedis() redis.Cmdable {
 		redisCmd = redis.NewClient(&redis.Options{
 			Addr: "localhost:6379",
 		})
+
+		for err := redisCmd.Ping(context.Background()).Err(); err != nil; {
+			panic(err)
+		}
 	}
 	return redisCmd
 }
