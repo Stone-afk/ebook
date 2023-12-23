@@ -3,6 +3,9 @@ package dao
 import (
 	"context"
 	"ebook/cmd/internal/repository/dao/article"
+	"ebook/cmd/internal/repository/dao/async_sms"
+	"ebook/cmd/internal/repository/dao/interactive"
+	"ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,7 +16,15 @@ import (
 
 func InitTables(db *gorm.DB) error {
 	return db.AutoMigrate(&user.User{}, &article.Article{},
-		&article.PublishedArticle{})
+		&article.PublishedArticle{},
+		&article.PublishedArticleV1{},
+		&async_sms.AsyncSms{},
+		&interactive.Interactive{},
+		&interactive.UserLikeBiz{},
+		&interactive.Collection{},
+		&interactive.UserCollectionBiz{},
+		&job.Job{},
+	)
 }
 
 func InitCollections(db *mongo.Database) error {
