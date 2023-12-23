@@ -6,6 +6,7 @@ package svcmocks
 
 import (
 	context "context"
+	domain "ebook/cmd/internal/domain"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -35,17 +36,61 @@ func (m *MockInteractiveService) EXPECT() *MockInteractiveServiceMockRecorder {
 }
 
 // CancelLike mocks base method.
-func (m *MockInteractiveService) CancelLike(ctx context.Context, biz string, bizId, uid int64) error {
+func (m *MockInteractiveService) CancelLike(ctx context.Context, biz string, bizId, userId int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CancelLike", ctx, biz, bizId, uid)
+	ret := m.ctrl.Call(m, "CancelLike", ctx, biz, bizId, userId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CancelLike indicates an expected call of CancelLike.
-func (mr *MockInteractiveServiceMockRecorder) CancelLike(ctx, biz, bizId, uid interface{}) *gomock.Call {
+func (mr *MockInteractiveServiceMockRecorder) CancelLike(ctx, biz, bizId, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelLike", reflect.TypeOf((*MockInteractiveService)(nil).CancelLike), ctx, biz, bizId, uid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelLike", reflect.TypeOf((*MockInteractiveService)(nil).CancelLike), ctx, biz, bizId, userId)
+}
+
+// Collect mocks base method.
+func (m *MockInteractiveService) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Collect", ctx, biz, bizId, cid, uid)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Collect indicates an expected call of Collect.
+func (mr *MockInteractiveServiceMockRecorder) Collect(ctx, biz, bizId, cid, uid interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Collect", reflect.TypeOf((*MockInteractiveService)(nil).Collect), ctx, biz, bizId, cid, uid)
+}
+
+// Get mocks base method.
+func (m *MockInteractiveService) Get(ctx context.Context, biz string, bizId, userId int64) (domain.Interactive, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, biz, bizId, userId)
+	ret0, _ := ret[0].(domain.Interactive)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockInteractiveServiceMockRecorder) Get(ctx, biz, bizId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockInteractiveService)(nil).Get), ctx, biz, bizId, userId)
+}
+
+// GetByIds mocks base method.
+func (m *MockInteractiveService) GetByIds(ctx context.Context, biz string, bizIds []int64) (map[int64]domain.Interactive, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByIds", ctx, biz, bizIds)
+	ret0, _ := ret[0].(map[int64]domain.Interactive)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByIds indicates an expected call of GetByIds.
+func (mr *MockInteractiveServiceMockRecorder) GetByIds(ctx, biz, bizIds interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByIds", reflect.TypeOf((*MockInteractiveService)(nil).GetByIds), ctx, biz, bizIds)
 }
 
 // IncrReadCnt mocks base method.
@@ -63,15 +108,15 @@ func (mr *MockInteractiveServiceMockRecorder) IncrReadCnt(ctx, biz, bizId interf
 }
 
 // Like mocks base method.
-func (m *MockInteractiveService) Like(ctx context.Context, biz string, bizId, uid int64) error {
+func (m *MockInteractiveService) Like(ctx context.Context, biz string, bizId, userId int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Like", ctx, biz, bizId, uid)
+	ret := m.ctrl.Call(m, "Like", ctx, biz, bizId, userId)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Like indicates an expected call of Like.
-func (mr *MockInteractiveServiceMockRecorder) Like(ctx, biz, bizId, uid interface{}) *gomock.Call {
+func (mr *MockInteractiveServiceMockRecorder) Like(ctx, biz, bizId, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Like", reflect.TypeOf((*MockInteractiveService)(nil).Like), ctx, biz, bizId, uid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Like", reflect.TypeOf((*MockInteractiveService)(nil).Like), ctx, biz, bizId, userId)
 }
