@@ -15,9 +15,12 @@ func NewObservabilityHandler() *ObservabilityHandler {
 
 func (h *ObservabilityHandler) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("test")
-	g.GET("/metric", func(ctx *gin.Context) {
-		sleep := rand.Int31n(1000)
-		time.Sleep(time.Millisecond * time.Duration(sleep))
-		ctx.String(http.StatusOK, "OK")
-	})
+	g.GET("/random", h.Random)
+}
+
+func (h *ObservabilityHandler) Random(ctx *gin.Context) {
+	num := rand.Int31n(1000)
+	// 模拟响应时间
+	time.Sleep(time.Millisecond * time.Duration(num))
+	ctx.String(http.StatusOK, "OK")
 }

@@ -81,17 +81,22 @@ func (l *LocalFuncExecutor) Exec(ctx context.Context, j domain.CronJob) error {
 
 // Scheduler 调度器
 type Scheduler struct {
-	execs   map[string]Executor
-	svc     service.CronJobService
-	l       logger.Logger
-	limiter *semaphore.Weighted
+	execs     map[string]Executor
+	svc       service.CronJobService
+	l         logger.Logger
+	interval  time.Duration
+	dbTimeout time.Duration
+	limiter   *semaphore.Weighted
 }
 
 func NewScheduler(svc service.CronJobService, l logger.Logger) *Scheduler {
 	return &Scheduler{
-		svc:   svc,
-		l:     l,
-		execs: make(map[string]Executor),
+		svc:       svc,
+		l:         l,
+		interval:  time.Second,
+		dbTimeout: time.Second,
+		execs:     make(map[string]Executor),
+		limiter:   semaphore.NewWeighted(100),
 	}
 }
 
@@ -110,31 +115,49 @@ func (s *Scheduler) Start(ctx context.Context) error {
 			// 退出调度循环
 			return ctx.Err()
 		}
+		err := s.limiter.Acquire(ctx, 1)
+		if err != nil {
+			// 正常来说，只有 ctx 超时或者取消才会进来这里
+			return err
+		}
 		// 一次调度的数据库查询时间
-		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		dbCtx, cancel := context.WithTimeout(ctx, s.dbTimeout)
 		j, err := s.svc.Preempt(dbCtx)
 		cancel()
 		if err != nil {
 			// 你不能 return
 			// 你要继续下一轮
 			s.l.Error("抢占任务失败", logger.Error(err))
+			// 没有抢占到，进入下一个循环
+			// 这里可以考虑睡眠一段时间
+			// 你也可以进一步细分不同的错误，如果是可以容忍的错误，
+			// 就继续，不然就直接 return
+			time.Sleep(s.interval)
+			continue
 		}
 		exec, ok := s.execs[j.Executor]
 		if !ok {
 			// DEBUG 的时候最好中断
 			// 线上就继续
-			s.l.Error("未找到对应的执行器",
+			s.l.Error("未找到对应的执行器, 请检查是否是框架支持的Executor方式",
 				logger.String("executor", j.Executor))
+			// 不支持的执行方式。
+			// 比如说，这里要求的runner是调用 gRPC，我们就不支持
+			err = j.CancelFunc()
+			s.l.Error("释放任务失败",
+				logger.Error(err),
+				logger.Int64("jid", j.Id))
 			continue
 		}
 		// 接下来就是执行
 		// 怎么执行？
 		go func() {
 			defer func() {
-				err1 := j.CancelFunc()
-				if err1 != nil {
+				s.limiter.Release(1)
+				er := j.CancelFunc()
+				if er != nil {
 					s.l.Error("释放任务失败",
-						logger.Error(err1),
+						logger.Error(er),
 						logger.Int64("jid", j.Id))
 				}
 			}()
@@ -147,7 +170,7 @@ func (s *Scheduler) Start(ctx context.Context) error {
 				s.l.Error("任务执行失败", logger.Error(er))
 			}
 			// 要不要考虑下一次调度？
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), s.dbTimeout)
 			defer cancel()
 			er = s.svc.ResetNextTime(ctx, j)
 			if er != nil {
