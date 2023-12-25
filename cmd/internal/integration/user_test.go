@@ -73,7 +73,7 @@ func TestUserHandler_e2e_SendLoginSMSCode(t *testing.T) {
 
 			},
 			wantCode: 200,
-			wantResult: web.Result{
+			wantResult: handler.Result{
 				Code: 4,
 				Msg:  "输入有误",
 			},
@@ -105,7 +105,7 @@ func TestUserHandler_e2e_SendLoginSMSCode(t *testing.T) {
 			},
 			phone:    "15212345679",
 			wantCode: 200,
-			wantResult: web.Result{
+			wantResult: handler.Result{
 				Code: 4,
 				Msg:  "发送太频繁，请稍后再试",
 			},
@@ -137,7 +137,7 @@ func TestUserHandler_e2e_SendLoginSMSCode(t *testing.T) {
 			},
 			phone:    "15212345670",
 			wantCode: 200,
-			wantResult: web.Result{
+			wantResult: handler.Result{
 				Code: 5,
 				Msg:  "系统错误",
 			},

@@ -1,4 +1,4 @@
-package integration
+package ginx
 
 type Result[T any] struct {
 	Code int    `json:"code"`
