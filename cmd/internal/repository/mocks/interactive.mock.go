@@ -6,7 +6,7 @@ package repomocks
 
 import (
 	context "context"
-	domain "ebook/cmd/internal/domain"
+	"ebook/cmd/interactive/domain"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"

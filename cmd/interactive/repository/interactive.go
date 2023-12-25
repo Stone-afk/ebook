@@ -2,14 +2,14 @@ package repository
 
 import (
 	"context"
-	"ebook/cmd/internal/domain"
-	"ebook/cmd/internal/repository/cache"
-	"ebook/cmd/internal/repository/dao/interactive"
+	"ebook/cmd/interactive/domain"
+	"ebook/cmd/interactive/repository/cache"
+	dao2 "ebook/cmd/interactive/repository/dao"
 	"ebook/cmd/pkg/logger"
 	"github.com/ecodeclub/ekit/slice"
 )
 
-//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/interactive.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/mocks/interactive.mock.go
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/interactive/repository/interactive.go -package=repomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/interactive/repository/mocks/interactive.mock.go
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	BatchIncrReadCnt(ctx context.Context, biz []string, bizIds []int64) error
@@ -18,18 +18,17 @@ type InteractiveRepository interface {
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, id int64, userId int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, userId int64) (bool, error)
-	AddRecord(ctx context.Context, aid int64, uid int64) error
 	AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error
 	GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error)
 }
 
 type interactiveRepository struct {
 	cache cache.InteractiveCache
-	dao   interactive.InteractiveDAO
+	dao   dao2.InteractiveDAO
 	l     logger.Logger
 }
 
-func NewInteractiveRepository(dao interactive.InteractiveDAO,
+func NewInteractiveRepository(dao dao2.InteractiveDAO,
 	cache cache.InteractiveCache, l logger.Logger) InteractiveRepository {
 	return &interactiveRepository{
 		dao:   dao,
@@ -43,14 +42,14 @@ func (repo *interactiveRepository) GetByIds(ctx context.Context, biz string, ids
 	if err != nil {
 		return nil, err
 	}
-	return slice.Map[interactive.Interactive, domain.Interactive](vals,
-		func(idx int, src interactive.Interactive) domain.Interactive {
+	return slice.Map[dao2.Interactive, domain.Interactive](vals,
+		func(idx int, src dao2.Interactive) domain.Interactive {
 			return repo.toDomain(src)
 		}), nil
 }
 
 func (repo *interactiveRepository) AddCollectionItem(ctx context.Context, biz string, bizId, cid int64, uid int64) error {
-	err := repo.dao.InsertCollectionBiz(ctx, interactive.UserCollectionBiz{
+	err := repo.dao.InsertCollectionBiz(ctx, dao2.UserCollectionBiz{
 		Biz:   biz,
 		BizId: bizId,
 		Cid:   cid,
@@ -60,11 +59,6 @@ func (repo *interactiveRepository) AddCollectionItem(ctx context.Context, biz st
 		return err
 	}
 	return repo.cache.IncrCollectCntIfPresent(ctx, biz, bizId)
-}
-
-func (repo *interactiveRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {
-	//TODO implement me
-	panic("implement me")
 }
 
 // BatchIncrReadCnt bizs 和 ids 的长度必须相等
@@ -117,7 +111,7 @@ func (repo *interactiveRepository) Liked(ctx context.Context,
 	switch err {
 	case nil:
 		return true, nil
-	case interactive.ErrRecordNotFound:
+	case dao2.ErrRecordNotFound:
 		// 你要吞掉
 		return false, nil
 	default:
@@ -131,7 +125,7 @@ func (repo *interactiveRepository) Collected(ctx context.Context,
 	switch err {
 	case nil:
 		return true, nil
-	case interactive.ErrRecordNotFound:
+	case dao2.ErrRecordNotFound:
 		// 你要吞掉
 		return false, nil
 	default:
@@ -173,7 +167,7 @@ func (repo *interactiveRepository) IncrReadCnt(ctx context.Context,
 	return repo.cache.IncrReadCntIfPresent(ctx, biz, bizId)
 }
 
-func (repo *interactiveRepository) toDomain(intr interactive.Interactive) domain.Interactive {
+func (repo *interactiveRepository) toDomain(intr dao2.Interactive) domain.Interactive {
 	return domain.Interactive{
 		LikeCnt:    intr.LikeCnt,
 		CollectCnt: intr.CollectCnt,

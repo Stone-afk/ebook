@@ -1,4 +1,4 @@
-package interactive
+package dao
 
 import (
 	"context"

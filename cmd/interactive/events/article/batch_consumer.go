@@ -2,7 +2,8 @@ package article
 
 import (
 	"context"
-	"ebook/cmd/internal/repository"
+	"ebook/cmd/interactive/repository"
+	"ebook/cmd/internal/events/article"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
@@ -31,7 +32,7 @@ func (r *InteractiveReadEventBatchConsumer) Start() error {
 	}
 	go func() {
 		err = cg.Consume(context.Background(),
-			[]string{"read_article"}, saramax.NewBatchHandler[ReadEvent](r.l, r.Consume))
+			[]string{"read_article"}, saramax.NewBatchHandler[article.ReadEvent](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("线程退出消费, 循环异常", logger.Error(err))
 		}
@@ -41,7 +42,7 @@ func (r *InteractiveReadEventBatchConsumer) Start() error {
 
 // Consume 这个不是幂等的
 func (r *InteractiveReadEventBatchConsumer) Consume(msg []*sarama.ConsumerMessage,
-	ts []ReadEvent) error {
+	ts []article.ReadEvent) error {
 	ids := make([]int64, 0, len(ts))
 	bizs := make([]string, 0, len(ts))
 	for _, evt := range ts {

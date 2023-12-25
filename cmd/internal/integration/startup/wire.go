@@ -3,6 +3,10 @@
 package startup
 
 import (
+	repository2 "ebook/cmd/interactive/repository"
+	cache2 "ebook/cmd/interactive/repository/cache"
+	"ebook/cmd/interactive/repository/dao"
+	service2 "ebook/cmd/interactive/service"
 	events "ebook/cmd/internal/events/article"
 	"ebook/cmd/internal/handler"
 	ijwt "ebook/cmd/internal/handler/jwt"
@@ -11,7 +15,6 @@ import (
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
 	"ebook/cmd/internal/repository/dao/async_sms"
-	"ebook/cmd/internal/repository/dao/interactive"
 	"ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
@@ -41,10 +44,10 @@ var articleSvcProvider = wire.NewSet(
 	service.NewArticleService,
 )
 var interactiveSvcProvider = wire.NewSet(
-	interactive.NewGORMInteractiveDAO,
-	cache.NewRedisInteractiveCache,
-	repository.NewInteractiveRepository,
-	service.NewInteractiveService,
+	dao.NewGORMInteractiveDAO,
+	cache2.NewRedisInteractiveCache,
+	repository2.NewInteractiveRepository,
+	service2.NewInteractiveService,
 )
 var rankServiceProvider = wire.NewSet(
 	service.NewBatchRankingService,
@@ -127,9 +130,9 @@ func InitAsyncSmsService(svc sms.Service) *async.Service {
 //	return &service.BatchRankingService{}
 //}
 
-func InitInteractiveService() service.InteractiveService {
+func InitInteractiveService() service2.InteractiveService {
 	wire.Build(thirdProvider, interactiveSvcProvider)
-	return service.NewInteractiveService(nil, nil)
+	return service2.NewInteractiveService(nil, nil)
 }
 
 func InitJobScheduler() *cronJob.Scheduler {
