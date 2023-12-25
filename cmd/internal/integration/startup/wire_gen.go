@@ -67,7 +67,7 @@ func InitWebServer() *gin.Engine {
 	return engine
 }
 
-func InitArticleHandler(dao article.ArticleDAO) *handler.ArticleHandler {
+func InitArticleHandler(dao2 article.ArticleDAO) *handler.ArticleHandler {
 	cmdable := InitRedis()
 	articleCache := cache.NewRedisArticleCache(cmdable)
 	gormDB := InitTestDB()
@@ -75,7 +75,7 @@ func InitArticleHandler(dao article.ArticleDAO) *handler.ArticleHandler {
 	userCache := cache.NewRedisUserCache(cmdable)
 	userRepository := repository.NewUserRepository(userDAO, userCache)
 	logger := InitLogger()
-	articleRepository := repository.NewArticleRepository(dao, articleCache, userRepository, logger)
+	articleRepository := repository.NewArticleRepository(dao2, articleCache, userRepository, logger)
 	client := InitKafka()
 	syncProducer := NewSyncProducer(client)
 	producer := article2.NewKafkaProducer(syncProducer)
