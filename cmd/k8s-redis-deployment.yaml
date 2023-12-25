@@ -19,4 +19,6 @@ spec:
         - name: ebook-live-redis
           image: redis:latest
           imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 16379
       restartPolicy: Always
