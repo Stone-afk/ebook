@@ -1,4 +1,4 @@
-package interactive
+package dao
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 var ErrRecordNotFound = gorm.ErrRecordNotFound
 
-//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/dao/interactive/types.go -package=daomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/dao/mocks/interactive.mock.go
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/interactive/repository/dao/types.go -package=daomocks -destination=/Users/stone/go_project/ebook/ebook/cmd/interactive/repository/dao/mocks/interactive.mock.go
 type InteractiveDAO interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error

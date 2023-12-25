@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"ebook/cmd/interactive/service"
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository"
 	"github.com/ecodeclub/ekit/queue"
@@ -19,7 +20,7 @@ type RankingService interface {
 
 // BatchRankingService 分批计算
 type BatchRankingService struct {
-	intrSvc InteractiveService
+	intrSvc service.InteractiveService
 	artSvc  ArticleService
 	// 为了测试，不得已暴露出去
 	BatchSize int
@@ -29,7 +30,7 @@ type BatchRankingService struct {
 }
 
 func NewBatchRankingService(
-	intrSvc InteractiveService,
+	intrSvc service.InteractiveService,
 	artSvc ArticleService,
 	repo repository.RankingRepository) RankingService {
 	res := &BatchRankingService{

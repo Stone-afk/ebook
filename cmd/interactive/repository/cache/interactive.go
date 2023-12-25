@@ -2,7 +2,8 @@ package cache
 
 import (
 	"context"
-	"ebook/cmd/internal/domain"
+	"ebook/cmd/interactive/domain"
+	"ebook/cmd/internal/repository/cache"
 	_ "embed"
 	"fmt"
 	"github.com/redis/go-redis/v9"
@@ -21,7 +22,7 @@ const (
 	fieldLikeCnt    = "like_cnt"
 )
 
-//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/interactive.go -package=cachemocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/mocks/interactive.mock.go
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/interactive/repository/cache/interactive.go -package=cachemocks -destination=/Users/stone/go_project/ebook/ebook/cmd/interactive/repository/cache/mocks/interactive.mock.go
 type InteractiveCache interface {
 	// IncrReadCntIfPresent 如果在缓存中有对应的数据，就 +1
 	IncrReadCntIfPresent(ctx context.Context, biz string, bizId int64) error
@@ -79,7 +80,7 @@ func (r *RedisInteractiveCache) Get(ctx context.Context, biz string, bizId int64
 	}
 	if len(data) == 0 {
 		// 缓存不存在，系统错误，比如说你的同事，手贱设置了缓存，但是忘记任何 fields
-		return domain.Interactive{}, ErrKeyNotExist
+		return domain.Interactive{}, cache.ErrKeyNotExist
 	}
 	// 理论上来说，这里不可能有 error
 	collectCnt, _ := strconv.ParseInt(data[fieldCollectCnt], 10, 64)

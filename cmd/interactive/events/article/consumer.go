@@ -2,7 +2,8 @@ package article
 
 import (
 	"context"
-	"ebook/cmd/internal/repository"
+	"ebook/cmd/interactive/repository"
+	"ebook/cmd/internal/events/article"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
@@ -35,7 +36,7 @@ func (r *InteractiveReadEventConsumer) Start() error {
 	go func() {
 		err := cg.Consume(
 			context.Background(),
-			[]string{"read_article"}, saramax.NewHandler[ReadEvent](r.l, r.Consume))
+			[]string{"read_article"}, saramax.NewHandler[article.ReadEvent](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出了消费循环异常", logger.Error(err))
 		}
@@ -44,7 +45,7 @@ func (r *InteractiveReadEventConsumer) Start() error {
 }
 
 // Consume 这个不是幂等的
-func (r *InteractiveReadEventConsumer) Consume(msg *sarama.ConsumerMessage, t ReadEvent) error {
+func (r *InteractiveReadEventConsumer) Consume(msg *sarama.ConsumerMessage, t article.ReadEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return r.repo.IncrReadCnt(ctx, "article", t.Aid)

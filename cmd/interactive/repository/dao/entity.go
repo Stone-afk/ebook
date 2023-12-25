@@ -1,4 +1,4 @@
-package interactive
+package dao
 
 // SELECT c.id as cid , c.name as cname, uc.biz_id as biz_id, uc.biz as biz
 // FROM `collection` as c JOIN `user_collection_biz` as uc

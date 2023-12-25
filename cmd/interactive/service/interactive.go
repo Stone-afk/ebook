@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"ebook/cmd/internal/domain"
-	"ebook/cmd/internal/repository"
+	"ebook/cmd/interactive/domain"
+	"ebook/cmd/interactive/repository"
 	"ebook/cmd/pkg/logger"
 	"golang.org/x/sync/errgroup"
 )
 
-//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/service/interactive.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/service/mocks/interactive.mock.go
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/interactive/service/interactive.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/interactive/service/mocks/interactive.mock.go
 type InteractiveService interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	// Like 点赞

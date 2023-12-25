@@ -1,6 +1,8 @@
 package handler
 
 import (
+	domain2 "ebook/cmd/interactive/domain"
+	service2 "ebook/cmd/interactive/service"
 	"ebook/cmd/internal/domain"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
@@ -21,11 +23,11 @@ var _ handler = (*ArticleHandler)(nil)
 type ArticleHandler struct {
 	svc     service.ArticleService
 	l       logger.Logger
-	intrSvc service.InteractiveService
+	intrSvc service2.InteractiveService
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, intrSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, intrSvc service2.InteractiveService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		l:       l,
@@ -115,7 +117,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 		}
 		return err
 	})
-	var intr domain.Interactive
+	var intr domain2.Interactive
 	eg.Go(func() error {
 		// 这个地方可以容忍错误
 		intr, err = h.intrSvc.Get(ctx, h.biz, id, uc.UserId)

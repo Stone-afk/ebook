@@ -7,13 +7,17 @@
 package main
 
 import (
+	article3 "ebook/cmd/interactive/events/article"
+	repository2 "ebook/cmd/interactive/repository"
+	cache2 "ebook/cmd/interactive/repository/cache"
+	"ebook/cmd/interactive/repository/dao"
+	service2 "ebook/cmd/interactive/service"
 	article2 "ebook/cmd/internal/events/article"
 	"ebook/cmd/internal/handler"
 	"ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
-	"ebook/cmd/internal/repository/dao/interactive"
 	"ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
@@ -49,14 +53,14 @@ func InitApp() *App {
 	syncProducer := ioc.NewSyncProducer(client)
 	producer := article2.NewKafkaProducer(syncProducer)
 	articleService := service.NewArticleService(articleRepository, logger, producer)
-	interactiveDAO := interactive.NewGORMInteractiveDAO(db)
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
-	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository2.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
 	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
 	observabilityHandler := handler.NewObservabilityHandler()
 	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler, observabilityHandler)
-	interactiveReadEventBatchConsumer := article2.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
+	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
 	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
 	rankingLocalCache := cache.NewRankingLocalCache()
@@ -77,7 +81,7 @@ func InitApp() *App {
 
 var rankServiceProvider = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRedisRankingCache, cache.NewRankingLocalCache)
 
-var interactiveServiceProvider = wire.NewSet(interactive.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache, repository.NewInteractiveRepository, service.NewInteractiveService)
+var interactiveServiceProvider = wire.NewSet(dao.NewGORMInteractiveDAO, cache2.NewRedisInteractiveCache, repository2.NewInteractiveRepository, service2.NewInteractiveService)
 
 var articleServiceProvider = wire.NewSet(article.NewGORMArticleDAO, cache.NewRedisArticleCache, repository.NewArticleRepository, service.NewArticleService)
 

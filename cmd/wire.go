@@ -3,13 +3,17 @@
 package main
 
 import (
+	article2 "ebook/cmd/interactive/events/article"
+	repository2 "ebook/cmd/interactive/repository"
+	cache2 "ebook/cmd/interactive/repository/cache"
+	"ebook/cmd/interactive/repository/dao"
+	service2 "ebook/cmd/interactive/service"
 	events "ebook/cmd/internal/events/article"
 	"ebook/cmd/internal/handler"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/repository"
 	"ebook/cmd/internal/repository/cache"
 	"ebook/cmd/internal/repository/dao/article"
-	"ebook/cmd/internal/repository/dao/interactive"
 	"ebook/cmd/internal/repository/dao/job"
 	"ebook/cmd/internal/repository/dao/user"
 	"ebook/cmd/internal/service"
@@ -25,10 +29,10 @@ var rankServiceProvider = wire.NewSet(
 )
 
 var interactiveServiceProvider = wire.NewSet(
-	interactive.NewGORMInteractiveDAO,
-	cache.NewRedisInteractiveCache,
-	repository.NewInteractiveRepository,
-	service.NewInteractiveService,
+	dao.NewGORMInteractiveDAO,
+	cache2.NewRedisInteractiveCache,
+	repository2.NewInteractiveRepository,
+	service2.NewInteractiveService,
 )
 
 var articleServiceProvider = wire.NewSet(
@@ -79,7 +83,7 @@ func InitApp() *App {
 		ioc.InitRankingJob,
 
 		// consumer
-		events.NewInteractiveReadEventBatchConsumer,
+		article2.NewInteractiveReadEventBatchConsumer,
 		events.NewKafkaProducer,
 
 		rankServiceProvider,

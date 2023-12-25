@@ -1,5 +1,7 @@
 package domain
 
+import "ebook/cmd/internal/domain"
+
 // Interactive 这个是总体交互的计数
 type Interactive struct {
 	//Biz   string
@@ -22,7 +24,7 @@ type Self struct {
 type Collection struct {
 	Name  string
 	Uid   int64
-	Items []Resource
+	Items []domain.Resource
 }
 
 // max(发送者总速率/单一分区写入速率, 发送者总速率/单一消费者速率) + buffer
