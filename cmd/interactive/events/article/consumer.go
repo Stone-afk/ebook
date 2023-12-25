@@ -3,12 +3,15 @@ package article
 import (
 	"context"
 	"ebook/cmd/interactive/repository"
+	"ebook/cmd/internal/events"
 	"ebook/cmd/internal/events/article"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
 	"time"
 )
+
+var _ events.Consumer = &InteractiveReadEventConsumer{}
 
 type InteractiveReadEventConsumer struct {
 	client sarama.Client
