@@ -9,6 +9,6 @@ spec:
     - protocol: TCP
       port: 16379
       #  Redis 默认端口
-      targetPort: 6379
+      targetPort: 16379
       nodePort: 30003
   type: NodePort
