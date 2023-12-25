@@ -17,7 +17,7 @@ type BatchHandler[T any] struct {
 }
 
 func NewBatchHandler[T any](l logger.Logger,
-	fn func(msgs []*sarama.ConsumerMessage, ts []T) error) *BatchHandler[T] {
+	fn func(msgs []*sarama.ConsumerMessage, evts []T) error) *BatchHandler[T] {
 	return &BatchHandler[T]{
 		l:             l,
 		fn:            fn,

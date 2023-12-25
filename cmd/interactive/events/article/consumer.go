@@ -37,11 +37,26 @@ func (r *InteractiveReadEventConsumer) Start() error {
 		return err
 	}
 	go func() {
-		err := cg.Consume(
+		err = cg.Consume(
 			context.Background(),
 			[]string{"read_article"}, saramax.NewHandler[article.ReadEvent](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出了消费循环异常", logger.Error(err))
+		}
+	}()
+	return err
+}
+
+func (r *InteractiveReadEventConsumer) StartBatch() error {
+	cg, err := sarama.NewConsumerGroupFromClient("interactive", r.client)
+	if err != nil {
+		return err
+	}
+	go func() {
+		err = cg.Consume(context.Background(),
+			[]string{"read_article"}, saramax.NewBatchHandler[article.ReadEvent](r.l, r.BatchConsume))
+		if err != nil {
+			r.l.Error("线程退出消费, 循环异常", logger.Error(err))
 		}
 	}()
 	return err
@@ -52,4 +67,23 @@ func (r *InteractiveReadEventConsumer) Consume(msg *sarama.ConsumerMessage, t ar
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return r.repo.IncrReadCnt(ctx, "article", t.Aid)
+}
+
+func (r *InteractiveReadEventConsumer) BatchConsume(msgs []*sarama.ConsumerMessage,
+	evts []article.ReadEvent) error {
+	ids := make([]int64, 0, len(msgs))
+	bizs := make([]string, 0, len(msgs))
+	for _, evt := range evts {
+		ids = append(ids, evt.Aid)
+		bizs = append(bizs, "article")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err := r.repo.BatchIncrReadCnt(ctx, bizs, ids)
+	if err != nil {
+		r.l.Error("批量增加阅读计数失败",
+			logger.Field{Key: "ids", Value: ids},
+			logger.Error(err))
+	}
+	return nil
 }
