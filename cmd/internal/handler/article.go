@@ -69,7 +69,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 
 }
 
-func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserClaims) (ginx.Result, error) {
+func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserClaims) (Result, error) {
 	err := h.intrSvc.Collect(ctx, h.biz, req.Id, req.Cid, uc.UserId)
 	if err != nil {
 		return Result{
@@ -80,7 +80,7 @@ func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserC
 	return Result{Msg: "OK"}, nil
 }
 
-func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
+func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (Result, error) {
 	var err error
 	if req.Like {
 		err = h.intrSvc.Like(ctx, h.biz, req.Id, uc.UserId)
@@ -88,12 +88,12 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims)
 		err = h.intrSvc.CancelLike(ctx, h.biz, req.Id, uc.UserId)
 	}
 	if err != nil {
-		return ginx.Result{
+		return Result{
 			Code: 5,
 			Msg:  "系统错误",
 		}, err
 	}
-	return ginx.Result{Msg: "OK"}, nil
+	return Result{Msg: "OK"}, nil
 }
 
 func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
@@ -176,7 +176,7 @@ func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (Result, e
 	if err != nil {
 		//ctx.JSON(http.StatusOK, )
 		//a.l.Error("前端输入的 ID 不对", logger.Error(err))
-		return ginx.Result{
+		return Result{
 			Code: 4,
 			Msg:  "参数错误",
 		}, err
@@ -185,7 +185,7 @@ func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (Result, e
 	if err != nil {
 		//ctx.JSON(http.StatusOK, )
 		//a.l.Error("获得文章信息失败", logger.Error(err))
-		return ginx.Result{
+		return Result{
 			Code: 5,
 			Msg:  "系统错误",
 		}, err
@@ -196,13 +196,13 @@ func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (Result, e
 		// 如果公司有风控系统，这个时候就要上报这种非法访问的用户了。
 		//a.l.Error("非法访问文章，创作者 ID 不匹配",
 		//	logger.Int64("uid", usr.Id))
-		return ginx.Result{
+		return Result{
 			Code: 4,
 			// 也不需要告诉前端究竟发生了什么
 			Msg: "输入有误",
 		}, fmt.Errorf("非法访问文章，创作者 ID 不匹配 %d", uc.UserId)
 	}
-	return ginx.Result{
+	return Result{
 		Data: ArticleVO{
 			Id:    art.Id,
 			Title: art.Title,
