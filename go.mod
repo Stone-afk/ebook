@@ -1,4 +1,4 @@
-module gitee.com/stone-v/ebook
+module ebook
 
 go 1.20
 

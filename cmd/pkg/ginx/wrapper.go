@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func WrapToken[Req any, C jwt.Claims](l logger.Logger, fn func(ctx *gin.Context, uc C) (Result, error)) gin.HandlerFunc {
+func WrapToken[Req any, C jwt.Claims](l logger.Logger, fn func(ctx *gin.Context, uc C) (Result[any], error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		val, ok := ctx.Get("users")
 		if !ok {
@@ -36,7 +36,7 @@ func WrapToken[Req any, C jwt.Claims](l logger.Logger, fn func(ctx *gin.Context,
 }
 
 func WrapBodyAndToken[Req any, C jwt.Claims](
-	l logger.Logger, fn func(ctx *gin.Context, req Req, uc C) (Result, error)) gin.HandlerFunc {
+	l logger.Logger, fn func(ctx *gin.Context, req Req, uc C) (Result[any], error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req Req
 		if err := ctx.Bind(&req); err != nil {
@@ -68,7 +68,7 @@ func WrapBodyAndToken[Req any, C jwt.Claims](
 	}
 }
 
-func WrapBody[T any](l logger.Logger, fn func(ctx *gin.Context, req T) (Result, error)) gin.HandlerFunc {
+func WrapBody[T any](l logger.Logger, fn func(ctx *gin.Context, req T) (Result[any], error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
