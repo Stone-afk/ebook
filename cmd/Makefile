@@ -19,6 +19,6 @@ mock:
 	@mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/user.go -package=cachemocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/mocks/user.mock.go
 	@mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/code.go -package=cachemocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/mocks/code.mock.go
 
-	@mockgen -source=webook/pkg/ratelimit/types.go -package=limitmocks -destination=webook/pkg/ratelimit/mocks/ratelimit.mock.go
+	@mockgen -source=ebook/pkg/ratelimit/types.go -package=limitmocks -destination=webook/pkg/ratelimit/mocks/ratelimit.mock.go
 	@mockgen -package=redismocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/cachemocks/cmdable.mock.go github.com/redis/go-redis/v9 Cmdable
 	@go mod tidy
