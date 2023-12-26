@@ -6,6 +6,7 @@ import (
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/integration/startup"
 	"ebook/cmd/internal/repository/dao/article"
+	"ebook/cmd/pkg/ginx"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +58,7 @@ func (s *ArticleTestSuite) TestArticle_Publish() {
 
 		// 预期响应
 		wantCode   int
-		wantResult Result[int64]
+		wantResult ginx.Result[int64]
 	}{
 		{
 			name: "新建帖子并发表",
@@ -86,7 +87,7 @@ func (s *ArticleTestSuite) TestArticle_Publish() {
 				Content: "随便试试",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Data: 1,
 			},
 		},
@@ -129,7 +130,7 @@ func (s *ArticleTestSuite) TestArticle_Publish() {
 				Content: "新的内容",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Data: 2,
 			},
 		},
@@ -174,7 +175,7 @@ func (s *ArticleTestSuite) TestArticle_Publish() {
 				Content: "新的内容",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Data: 3,
 			},
 		},
@@ -228,7 +229,7 @@ func (s *ArticleTestSuite) TestArticle_Publish() {
 				Content: "新的内容",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Code: 5,
 				Msg:  "系统错误",
 			},
@@ -255,7 +256,7 @@ func (s *ArticleTestSuite) TestArticle_Publish() {
 			}
 			// 反序列化为结果
 			// 利用泛型来限定结果必须是 int64
-			var result Result[int64]
+			var result ginx.Result[int64]
 			err = json.Unmarshal(recorder.Body.Bytes(), &result)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.wantResult, result)
@@ -279,7 +280,7 @@ func (s *ArticleTestSuite) TestArticleHandler_Edit() {
 
 		// 预期响应
 		wantCode   int
-		wantResult Result[int64]
+		wantResult ginx.Result[int64]
 	}{
 		{
 			name: "新建帖子",
@@ -308,7 +309,7 @@ func (s *ArticleTestSuite) TestArticleHandler_Edit() {
 				Content: "随便试试",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Data: 1,
 			},
 		},
@@ -348,7 +349,7 @@ func (s *ArticleTestSuite) TestArticleHandler_Edit() {
 				Content: "新的内容",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Data: 2,
 			},
 		},
@@ -387,7 +388,7 @@ func (s *ArticleTestSuite) TestArticleHandler_Edit() {
 				Content: "新的内容",
 			},
 			wantCode: 200,
-			wantResult: Result[int64]{
+			wantResult: ginx.Result[int64]{
 				Code: 5,
 				Msg:  "系统错误",
 			},
@@ -413,7 +414,7 @@ func (s *ArticleTestSuite) TestArticleHandler_Edit() {
 			}
 			// 反序列化为结果
 			// 利用泛型来限定结果必须是 int64
-			var result Result[int64]
+			var result ginx.Result[int64]
 			err = json.Unmarshal(recorder.Body.Bytes(), &result)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.wantResult, result)

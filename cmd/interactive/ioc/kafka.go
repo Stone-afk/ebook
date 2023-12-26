@@ -26,6 +26,6 @@ func InitKafka() sarama.Client {
 }
 
 // NewConsumers 面临的问题依旧是所有的 Consumer 在这里注册一下
-func NewConsumers(c *article.InteractiveReadEventBatchConsumer) []events.Consumer {
+func NewConsumers(c *article.InteractiveReadEventConsumer) []events.Consumer {
 	return []events.Consumer{c}
 }
