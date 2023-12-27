@@ -1,4 +1,4 @@
-package startup
+package ioc
 
 import (
 	"ebook/cmd/pkg/logger"

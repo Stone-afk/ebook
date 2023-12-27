@@ -4,11 +4,12 @@ package interactive
 
 import (
 	events "ebook/cmd/interactive/events/article"
+	"ebook/cmd/interactive/grpc"
+	"ebook/cmd/interactive/ioc"
 	"ebook/cmd/interactive/repository"
 	"ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
 	"ebook/cmd/interactive/service"
-	"ebook/cmd/ioc"
 	"github.com/google/wire"
 )
 
@@ -30,7 +31,9 @@ func Init() *App {
 		thirdProvider,
 		serviceProvider,
 		events.NewInteractiveReadEventConsumer,
+		grpc.NewInteractiveServiceServer,
 		ioc.NewConsumers,
+		ioc.InitGRPCxServer,
 		wire.Struct(new(App), "*"),
 	)
 	return new(App)
