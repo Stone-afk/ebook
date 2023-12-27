@@ -7,6 +7,7 @@
 package startup
 
 import (
+	"ebook/cmd/interactive/grpc"
 	"ebook/cmd/interactive/repository"
 	"ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
@@ -17,6 +18,18 @@ import (
 // Injectors from wire.go:
 
 //go:generate wire
+func InitInteractiveGRPCServer() *grpc.InteractiveServiceServer {
+	gormDB := InitTestDB()
+	interactiveDAO := dao.NewGORMInteractiveDAO(gormDB)
+	cmdable := InitRedis()
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	logger := InitLogger()
+	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
+	return interactiveServiceServer
+}
+
 func InitInteractiveService() service.InteractiveService {
 	gormDB := InitTestDB()
 	interactiveDAO := dao.NewGORMInteractiveDAO(gormDB)

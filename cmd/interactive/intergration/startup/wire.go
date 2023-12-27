@@ -3,6 +3,7 @@
 package startup
 
 import (
+	"ebook/cmd/interactive/grpc"
 	"ebook/cmd/interactive/repository"
 	"ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
@@ -23,6 +24,11 @@ var interactiveSvcProvider = wire.NewSet(
 )
 
 //go:generate wire
+func InitInteractiveGRPCServer() *grpc.InteractiveServiceServer {
+	wire.Build(thirdProvider, interactiveSvcProvider, grpc.NewInteractiveServiceServer)
+	return new(grpc.InteractiveServiceServer)
+}
+
 func InitInteractiveService() service.InteractiveService {
 	wire.Build(thirdProvider, interactiveSvcProvider)
 	return service.NewInteractiveService(nil, nil)
