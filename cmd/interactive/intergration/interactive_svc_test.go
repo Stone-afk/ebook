@@ -2,6 +2,7 @@ package intergration
 
 import (
 	"context"
+	"ebook/cmd/interactive/grpc"
 	"ebook/cmd/interactive/intergration/startup"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
@@ -13,13 +14,15 @@ import (
 
 type InteractiveTestSuite struct {
 	suite.Suite
-	db  *gorm.DB
-	rdb redis.Cmdable
+	db     *gorm.DB
+	rdb    redis.Cmdable
+	server *grpc.InteractiveServiceServer
 }
 
 func (s *InteractiveTestSuite) SetupSuite() {
 	s.db = startup.InitTestDB()
 	s.rdb = startup.InitRedis()
+	s.server = startup.InitInteractiveGRPCServer()
 }
 
 func (s *InteractiveTestSuite) TearDownTest() {

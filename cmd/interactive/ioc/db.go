@@ -1,4 +1,4 @@
-package startup
+package ioc
 
 import (
 	"ebook/cmd/interactive/repository/dao"
