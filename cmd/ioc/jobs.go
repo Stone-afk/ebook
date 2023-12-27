@@ -1,6 +1,8 @@
 package ioc
 
 import (
+	"context"
+	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/job"
 	"ebook/cmd/internal/service"
 	"ebook/cmd/pkg/logger"
@@ -29,4 +31,22 @@ func InitJobs(l logger.Logger, rankingJob *job.RankingJob) *cron.Cron {
 		panic(err)
 	}
 	return expr
+}
+
+func InitScheduler(l logger.Logger,
+	local *job.LocalFuncExecutor,
+	svc service.CronJobService) *job.Scheduler {
+	res := job.NewScheduler(svc, l)
+	res.RegisterExecutor(local)
+	return res
+}
+
+func InitLocalFuncExecutor(svc service.RankingService) *job.LocalFuncExecutor {
+	res := job.NewLocalFuncExecutor()
+	res.RegisterFunc("ranking", func(ctx context.Context, j domain.CronJob) error {
+		ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+		defer cancel()
+		return svc.RankTopN(ctx)
+	})
+	return res
 }
