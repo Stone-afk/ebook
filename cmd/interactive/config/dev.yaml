@@ -9,5 +9,9 @@ kafka:
     - "localhost:9094"
 
 grpc:
-  #  启动监听 8090 端口
-  addr: ":8090"
+  server:
+    addr: ":8090"
+#  client:
+#    user:
+#      addr: "user.mycompany.com:8090"
+#    intr:

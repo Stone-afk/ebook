@@ -2,7 +2,7 @@ db:
   dsn: "root:root@tcp(localhost:13316)/ebook"
 
 redis:
-  addr: "localhost:6379"
+  addr: "localhost:16379"
 
 test: "hello,babc"
 
