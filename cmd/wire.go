@@ -3,7 +3,6 @@
 package main
 
 import (
-	article2 "ebook/cmd/interactive/events/article"
 	repository2 "ebook/cmd/interactive/repository"
 	cache2 "ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
@@ -82,8 +81,9 @@ func InitApp() *App {
 		ioc.InitJobs,
 		ioc.InitRankingJob,
 
-		// consumer
-		article2.NewInteractiveReadEventBatchConsumer,
+		repository.NewHistoryRecordRepository,
+		// events
+		events.NewHistoryReadEventConsumer,
 		events.NewKafkaProducer,
 
 		rankServiceProvider,
@@ -92,6 +92,7 @@ func InitApp() *App {
 		userServiceProvider,
 		codeServiceProvider,
 		wechatServiceProvider,
+		ioc.InitInteractiveGRPCClient,
 
 		handler.NewOAuth2WechatHandler,
 		handler.NewUserHandler,
