@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	"ebook/cmd/interactive/service"
+	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
 	"ebook/cmd/internal/domain"
 	"ebook/cmd/internal/repository"
+	"errors"
 	"github.com/ecodeclub/ekit/queue"
 	"github.com/ecodeclub/ekit/slice"
 	"math"
@@ -20,17 +21,20 @@ type RankingService interface {
 
 // BatchRankingService 分批计算
 type BatchRankingService struct {
-	intrSvc service.InteractiveService
-	artSvc  ArticleService
 	// 为了测试，不得已暴露出去
 	BatchSize int
 	N         int
-	repo      repository.RankingRepository // 将来扩展，以及支持测试
+
+	artSvc  ArticleService
+	intrSvc intrv1.InteractiveServiceClient
+	// 将来扩展，以及支持测试
+	repo repository.RankingRepository
+	// scoreFunc 不能返回负数
 	scoreFunc func(likeCnt int64, utime time.Time) float64
 }
 
 func NewBatchRankingService(
-	intrSvc service.InteractiveService,
+	intrSvc intrv1.InteractiveServiceClient,
 	artSvc ArticleService,
 	repo repository.RankingRepository) RankingService {
 	res := &BatchRankingService{
@@ -86,9 +90,15 @@ func (svc *BatchRankingService) rankTopN(ctx context.Context) ([]domain.Article,
 				return src.Id
 			})
 		// 要去找到对应的点赞数据
-		intrs, err := svc.intrSvc.GetByIds(ctx, "article", ids)
+		resp, err := svc.intrSvc.GetByIds(ctx, &intrv1.GetByIdsRequest{
+			Biz: "article", Ids: ids,
+		})
 		if err != nil {
 			return nil, err
+		}
+		intrs := resp.Intrs
+		if len(intrs) == 0 {
+			return nil, errors.New("没有数据")
 		}
 		// 合并计算 score
 		// 排序
