@@ -7,7 +7,6 @@
 package main
 
 import (
-	article3 "ebook/cmd/interactive/events/article"
 	repository2 "ebook/cmd/interactive/repository"
 	cache2 "ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
@@ -57,15 +56,17 @@ func InitApp() *App {
 	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository2.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
+	interactiveServiceClient := ioc.InitInteractiveGRPCClient(interactiveService, logger)
+	articleHandler := handler.NewArticleHandler(articleService, interactiveServiceClient, logger)
 	observabilityHandler := handler.NewObservabilityHandler()
 	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler, observabilityHandler)
-	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
-	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
+	historyRecordRepository := repository.NewHistoryRecordRepository(logger)
+	historyReadEventConsumer := article2.NewHistoryReadEventConsumer(client, logger, historyRecordRepository)
+	v2 := ioc.NewConsumers(historyReadEventConsumer)
 	redisRankingCache := cache.NewRedisRankingCache(cmdable)
 	rankingLocalCache := cache.NewRankingLocalCache()
 	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, rankingLocalCache)
-	rankingService := service.NewBatchRankingService(interactiveService, articleService, rankingRepository)
+	rankingService := service.NewBatchRankingService(interactiveServiceClient, articleService, rankingRepository)
 	rlockClient := ioc.InitRLockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
 	cron := ioc.InitJobs(logger, rankingJob)
