@@ -1,8 +1,7 @@
 package handler
 
 import (
-	domain2 "ebook/cmd/interactive/domain"
-	service2 "ebook/cmd/interactive/service"
+	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
 	"ebook/cmd/internal/domain"
 	ijwt "ebook/cmd/internal/handler/jwt"
 	"ebook/cmd/internal/service"
@@ -23,11 +22,11 @@ var _ handler = (*ArticleHandler)(nil)
 type ArticleHandler struct {
 	svc     service.ArticleService
 	l       logger.Logger
-	intrSvc service2.InteractiveService
+	intrSvc intrv1.InteractiveServiceClient
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, intrSvc service2.InteractiveService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, intrSvc intrv1.InteractiveServiceClient, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		l:       l,
@@ -70,7 +69,9 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 }
 
 func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserClaims) (Result, error) {
-	err := h.intrSvc.Collect(ctx, h.biz, req.Id, req.Cid, uc.UserId)
+	_, err := h.intrSvc.Collect(ctx, &intrv1.CollectRequest{
+		Biz: h.biz, BizId: req.Id, Cid: req.Cid, Uid: uc.UserId,
+	})
 	if err != nil {
 		return Result{
 			Code: 5,
@@ -83,9 +84,13 @@ func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserC
 func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (Result, error) {
 	var err error
 	if req.Like {
-		err = h.intrSvc.Like(ctx, h.biz, req.Id, uc.UserId)
+		_, err = h.intrSvc.Like(ctx, &intrv1.LikeRequest{
+			Biz: h.biz, BizId: req.Id, Uid: uc.UserId,
+		})
 	} else {
-		err = h.intrSvc.CancelLike(ctx, h.biz, req.Id, uc.UserId)
+		_, err = h.intrSvc.CancelLike(ctx, &intrv1.CancelLikeRequest{
+			Biz: h.biz, BizId: req.Id, Uid: uc.UserId,
+		})
 	}
 	if err != nil {
 		return Result{
@@ -117,10 +122,12 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 		}
 		return err
 	})
-	var intr domain2.Interactive
+	var resp *intrv1.GetResponse
 	eg.Go(func() error {
 		// 这个地方可以容忍错误
-		intr, err = h.intrSvc.Get(ctx, h.biz, id, uc.UserId)
+		resp, err = h.intrSvc.Get(ctx, &intrv1.GetRequest{
+			Biz: h.biz, BizId: id, Uid: uc.UserId,
+		})
 		// 这种是容错的写法
 		//if err != nil {
 		//	// 记录日志
@@ -149,7 +156,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 	//			logger.Error(err))
 	//	}
 	//}()
-
+	intr := resp.Intr
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
