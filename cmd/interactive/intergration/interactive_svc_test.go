@@ -191,6 +191,148 @@ func (s *InteractiveTestSuite) TestIncrReadCnt() {
 	}
 }
 
+func (s *InteractiveTestSuite) TestLike() {
+	t := s.T()
+	testCases := []struct {
+		name   string
+		before func(t *testing.T)
+		after  func(t *testing.T)
+
+		biz   string
+		bizId int64
+		uid   int64
+
+		wantErr  error
+		wantResp *intrv1.LikeResponse
+	}{
+		{
+			name: "点赞-DB和cache都有",
+			before: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				err := s.db.Create(dao.Interactive{
+					Id:         1,
+					Biz:        "test",
+					BizId:      2,
+					ReadCnt:    3,
+					CollectCnt: 4,
+					LikeCnt:    5,
+					Ctime:      6,
+					Utime:      7,
+				}).Error
+				assert.NoError(t, err)
+				err = s.rdb.HSet(ctx, "interactive:test:2",
+					"like_cnt", 3).Err()
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				var data dao.Interactive
+				err := s.db.Where("id = ?", 1).First(&data).Error
+				assert.NoError(t, err)
+				assert.True(t, data.Utime > 7)
+				data.Utime = 0
+				assert.Equal(t, dao.Interactive{
+					Id:         1,
+					Biz:        "test",
+					BizId:      2,
+					ReadCnt:    3,
+					CollectCnt: 4,
+					LikeCnt:    6,
+					Ctime:      6,
+				}, data)
+
+				var likeBiz dao.UserLikeBiz
+				err = s.db.Where("biz = ? AND biz_id = ? AND uid = ?",
+					"test", 2, 123).First(&likeBiz).Error
+				assert.NoError(t, err)
+				assert.True(t, likeBiz.Id > 0)
+				assert.True(t, likeBiz.Ctime > 0)
+				assert.True(t, likeBiz.Utime > 0)
+				likeBiz.Id = 0
+				likeBiz.Ctime = 0
+				likeBiz.Utime = 0
+				assert.Equal(t, dao.UserLikeBiz{
+					Biz:    "test",
+					BizId:  2,
+					Uid:    123,
+					Status: 1,
+				}, likeBiz)
+
+				cnt, err := s.rdb.HGet(ctx, "interactive:test:2", "like_cnt").Int()
+				assert.NoError(t, err)
+				assert.Equal(t, 4, cnt)
+				err = s.rdb.Del(ctx, "interactive:test:2").Err()
+				assert.NoError(t, err)
+			},
+			biz:      "test",
+			bizId:    2,
+			uid:      123,
+			wantResp: &intrv1.LikeResponse{},
+		},
+		{
+			name:   "点赞-都没有",
+			before: func(t *testing.T) {},
+			after: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				var data dao.Interactive
+				err := s.db.Where("biz = ? AND biz_id = ?", "test", 3).First(&data).Error
+				assert.NoError(t, err)
+				assert.True(t, data.Utime > 0)
+				assert.True(t, data.Ctime > 0)
+				assert.True(t, data.Id > 0)
+				data.Utime = 0
+				data.Ctime = 0
+				data.Id = 0
+				assert.Equal(t, dao.Interactive{
+					Biz:     "test",
+					BizId:   3,
+					LikeCnt: 1,
+				}, data)
+
+				var likeBiz dao.UserLikeBiz
+				err = s.db.Where("biz = ? AND biz_id = ? AND uid = ?",
+					"test", 3, 123).First(&likeBiz).Error
+				assert.NoError(t, err)
+				assert.True(t, likeBiz.Id > 0)
+				assert.True(t, likeBiz.Ctime > 0)
+				assert.True(t, likeBiz.Utime > 0)
+				likeBiz.Id = 0
+				likeBiz.Ctime = 0
+				likeBiz.Utime = 0
+				assert.Equal(t, dao.UserLikeBiz{
+					Biz:    "test",
+					BizId:  3,
+					Uid:    123,
+					Status: 1,
+				}, likeBiz)
+
+				cnt, err := s.rdb.Exists(ctx, "interactive:test:2").Result()
+				assert.NoError(t, err)
+				assert.Equal(t, int64(0), cnt)
+			},
+			biz:      "test",
+			bizId:    3,
+			uid:      123,
+			wantResp: &intrv1.LikeResponse{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.before(t)
+			resp, err := s.server.Like(context.Background(), &intrv1.LikeRequest{
+				Biz: tc.biz, BizId: tc.bizId, Uid: tc.uid,
+			})
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantResp, resp)
+			tc.after(t)
+		})
+	}
+}
+
 func TestInteractiveService(t *testing.T) {
 	suite.Run(t, &InteractiveTestSuite{})
 }
