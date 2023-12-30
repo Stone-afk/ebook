@@ -333,6 +333,108 @@ func (s *InteractiveTestSuite) TestLike() {
 	}
 }
 
+func (s *InteractiveTestSuite) TestDislike() {
+	t := s.T()
+	testCases := []struct {
+		name   string
+		before func(t *testing.T)
+		after  func(t *testing.T)
+
+		biz   string
+		bizId int64
+		uid   int64
+
+		wantErr  error
+		wantResp *intrv1.CancelLikeResponse
+	}{
+		{
+			name: "取消点赞-DB和cache都有",
+			before: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				err := s.db.Create(dao.Interactive{
+					Id:         1,
+					Biz:        "test",
+					BizId:      2,
+					ReadCnt:    3,
+					CollectCnt: 4,
+					LikeCnt:    5,
+					Ctime:      6,
+					Utime:      7,
+				}).Error
+				assert.NoError(t, err)
+				err = s.db.Create(dao.UserLikeBiz{
+					Id:     1,
+					Biz:    "test",
+					BizId:  2,
+					Uid:    123,
+					Ctime:  6,
+					Utime:  7,
+					Status: 1,
+				}).Error
+				assert.NoError(t, err)
+				err = s.rdb.HSet(ctx, "interactive:test:2",
+					"like_cnt", 3).Err()
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				var data dao.Interactive
+				err := s.db.Where("id = ?", 1).First(&data).Error
+				assert.NoError(t, err)
+				assert.True(t, data.Utime > 7)
+				data.Utime = 0
+				assert.Equal(t, dao.Interactive{
+					Id:         1,
+					Biz:        "test",
+					BizId:      2,
+					ReadCnt:    3,
+					CollectCnt: 4,
+					LikeCnt:    4,
+					Ctime:      6,
+				}, data)
+
+				var likeBiz dao.UserLikeBiz
+				err = s.db.Where("id = ?", 1).First(&likeBiz).Error
+				assert.NoError(t, err)
+				assert.True(t, likeBiz.Utime > 7)
+				likeBiz.Utime = 0
+				assert.Equal(t, dao.UserLikeBiz{
+					Id:     1,
+					Biz:    "test",
+					BizId:  2,
+					Uid:    123,
+					Ctime:  6,
+					Status: 0,
+				}, likeBiz)
+
+				cnt, err := s.rdb.HGet(ctx, "interactive:test:2", "like_cnt").Int()
+				assert.NoError(t, err)
+				assert.Equal(t, 2, cnt)
+				err = s.rdb.Del(ctx, "interactive:test:2").Err()
+				assert.NoError(t, err)
+			},
+			biz:      "test",
+			bizId:    2,
+			uid:      123,
+			wantResp: &intrv1.CancelLikeResponse{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.before(t)
+			resp, err := s.server.CancelLike(context.Background(), &intrv1.CancelLikeRequest{
+				Biz: tc.biz, BizId: tc.bizId, Uid: tc.uid,
+			})
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantResp, resp)
+			tc.after(t)
+		})
+	}
+}
+
 func TestInteractiveService(t *testing.T) {
 	suite.Run(t, &InteractiveTestSuite{})
 }
