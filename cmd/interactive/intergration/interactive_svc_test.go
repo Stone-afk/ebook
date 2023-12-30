@@ -635,6 +635,102 @@ func (s *InteractiveTestSuite) TestCollect() {
 	}
 }
 
+func (s *InteractiveTestSuite) TestGet() {
+	testCases := []struct {
+		name string
+
+		before func(t *testing.T)
+
+		bizId int64
+		biz   string
+		uid   int64
+
+		wantErr error
+		wantRes *intrv1.GetResponse
+	}{
+		{
+			name:  "全部取出来了-无缓存",
+			biz:   "test",
+			bizId: 12,
+			uid:   123,
+			before: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				err := s.db.WithContext(ctx).Create(&dao.Interactive{
+					Biz:        "test",
+					BizId:      12,
+					ReadCnt:    100,
+					CollectCnt: 200,
+					LikeCnt:    300,
+					Ctime:      123,
+					Utime:      234,
+				}).Error
+				assert.NoError(t, err)
+			},
+			wantRes: &intrv1.GetResponse{
+				Intr: &intrv1.Interactive{
+					Biz:        "test",
+					BizId:      12,
+					ReadCnt:    100,
+					CollectCnt: 200,
+					LikeCnt:    300,
+				},
+			},
+		},
+		{
+			name:  "全部取出来了-命中缓存-用户已点赞收藏",
+			biz:   "test",
+			bizId: 3,
+			uid:   123,
+			before: func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				err := s.db.WithContext(ctx).
+					Create(&dao.UserCollectionBiz{
+						Cid:   1,
+						Biz:   "test",
+						BizId: 3,
+						Uid:   123,
+						Ctime: 123,
+						Utime: 124,
+					}).Error
+				assert.NoError(t, err)
+				err = s.db.WithContext(ctx).
+					Create(&dao.UserLikeBiz{
+						Biz:    "test",
+						BizId:  3,
+						Uid:    123,
+						Ctime:  123,
+						Utime:  124,
+						Status: 1,
+					}).Error
+				assert.NoError(t, err)
+				err = s.rdb.HSet(ctx, "interactive:test:3",
+					"read_cnt", 0, "collect_cnt", 1).Err()
+				assert.NoError(t, err)
+			},
+			wantRes: &intrv1.GetResponse{
+				Intr: &intrv1.Interactive{
+					BizId:      3,
+					CollectCnt: 1,
+					Collected:  true,
+					Liked:      true,
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			tc.before(t)
+			res, err := s.server.Get(context.Background(), &intrv1.GetRequest{
+				Biz: tc.biz, BizId: tc.bizId, Uid: tc.uid,
+			})
+			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantRes, res)
+		})
+	}
+}
+
 func TestInteractiveService(t *testing.T) {
 	suite.Run(t, &InteractiveTestSuite{})
 }
