@@ -731,6 +731,79 @@ func (s *InteractiveTestSuite) TestGet() {
 	}
 }
 
+func (s *InteractiveTestSuite) TestGetByIds() {
+	preCtx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	// 准备数据
+	for i := 1; i < 5; i++ {
+		i := int64(i)
+		err := s.db.WithContext(preCtx).
+			Create(&dao.Interactive{
+				Id:         i,
+				Biz:        "test",
+				BizId:      i,
+				ReadCnt:    i,
+				CollectCnt: i + 1,
+				LikeCnt:    i + 2,
+			}).Error
+		assert.NoError(s.T(), err)
+	}
+
+	testCases := []struct {
+		name string
+
+		before func(t *testing.T)
+		biz    string
+		ids    []int64
+
+		wantErr error
+		wantRes *intrv1.GetByIdsResponse
+	}{
+		{
+			name: "查找成功",
+			biz:  "test",
+			ids:  []int64{1, 2},
+			wantRes: &intrv1.GetByIdsResponse{
+				Intrs: map[int64]*intrv1.Interactive{
+					1: {
+						Biz:        "test",
+						BizId:      1,
+						ReadCnt:    1,
+						CollectCnt: 2,
+						LikeCnt:    3,
+					},
+					2: {
+						Biz:        "test",
+						BizId:      2,
+						ReadCnt:    2,
+						CollectCnt: 3,
+						LikeCnt:    4,
+					},
+				},
+			},
+		},
+		{
+			name: "没有对应的数据",
+			biz:  "test",
+			ids:  []int64{100, 200},
+			wantRes: &intrv1.GetByIdsResponse{
+				Intrs: map[int64]*intrv1.Interactive{},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			res, err := s.server.GetByIds(context.Background(), &intrv1.GetByIdsRequest{
+				Biz: tc.biz, Ids: tc.ids,
+			})
+			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantRes, res)
+		})
+	}
+}
+
 func TestInteractiveService(t *testing.T) {
 	suite.Run(t, &InteractiveTestSuite{})
 }
