@@ -8,6 +8,7 @@ import (
 	context "context"
 	domain "ebook/cmd/internal/domain"
 	reflect "reflect"
+	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 )
@@ -51,18 +52,18 @@ func (mr *MockArticleServiceMockRecorder) GetById(ctx, id interface{}) *gomock.C
 }
 
 // GetPublishedById mocks base method.
-func (m *MockArticleService) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
+func (m *MockArticleService) GetPublishedById(ctx context.Context, id, userId int64) (domain.Article, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPublishedById", ctx, id)
+	ret := m.ctrl.Call(m, "GetPublishedById", ctx, id, userId)
 	ret0, _ := ret[0].(domain.Article)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPublishedById indicates an expected call of GetPublishedById.
-func (mr *MockArticleServiceMockRecorder) GetPublishedById(ctx, id interface{}) *gomock.Call {
+func (mr *MockArticleServiceMockRecorder) GetPublishedById(ctx, id, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublishedById", reflect.TypeOf((*MockArticleService)(nil).GetPublishedById), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublishedById", reflect.TypeOf((*MockArticleService)(nil).GetPublishedById), ctx, id, userId)
 }
 
 // List mocks base method.
@@ -78,6 +79,21 @@ func (m *MockArticleService) List(ctx context.Context, authorId int64, offset, l
 func (mr *MockArticleServiceMockRecorder) List(ctx, authorId, offset, limit interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockArticleService)(nil).List), ctx, authorId, offset, limit)
+}
+
+// ListPub mocks base method.
+func (m *MockArticleService) ListPub(ctx context.Context, uTime time.Time, offset, limit int) ([]domain.Article, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPub", ctx, uTime, offset, limit)
+	ret0, _ := ret[0].([]domain.Article)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPub indicates an expected call of ListPub.
+func (mr *MockArticleServiceMockRecorder) ListPub(ctx, uTime, offset, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPub", reflect.TypeOf((*MockArticleService)(nil).ListPub), ctx, uTime, offset, limit)
 }
 
 // Publish mocks base method.
