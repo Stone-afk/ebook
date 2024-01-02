@@ -69,7 +69,7 @@ func InitWebServer() *gin.Engine {
 		userSvcProvider,
 		articleSvcProvider,
 		interactiveSvcProvider,
-
+		InitInteractiveClient,
 		cache.NewCodeCache,
 		repository.NewCodeRepository,
 		// service 部分
@@ -101,6 +101,7 @@ func InitArticleHandler(dao article.ArticleDAO) *handler.ArticleHandler {
 		events.NewKafkaProducer,
 		cache.NewRedisArticleCache,
 		repository.NewArticleRepository,
+		InitInteractiveClient,
 		service.NewArticleService,
 		handler.NewArticleHandler,
 	)
@@ -120,15 +121,17 @@ func InitAsyncSmsService(svc sms.Service) *async.Service {
 	return &async.Service{}
 }
 
-//func InitRankingService() service.RankingService {
-//	wire.Build(thirdProvider,
-//		interactiveSvcProvider,
-//		articlSvcProvider,
-//		// 用不上这个 user repo，所以随便搞一个
-//		wire.InterfaceValue(new(repository.UserRepository)),
-//		rankServiceProvider)
-//	return &service.BatchRankingService{}
-//}
+func InitRankingService() service.RankingService {
+	wire.Build(thirdProvider,
+		interactiveSvcProvider,
+		articleSvcProvider,
+		InitInteractiveClient,
+		// 用不上这个 user repo，所以随便搞一个
+		wire.InterfaceValue(new(repository.UserRepository),
+			&repository.CachedUserRepository{}),
+		rankServiceProvider)
+	return &service.BatchRankingService{}
+}
 
 func InitInteractiveService() service2.InteractiveService {
 	wire.Build(thirdProvider, interactiveSvcProvider)
