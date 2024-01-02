@@ -61,7 +61,8 @@ func InitWebServer() *gin.Engine {
 	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository2.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
+	interactiveServiceClient := InitInteractiveClient(interactiveService)
+	articleHandler := handler.NewArticleHandler(articleService, interactiveServiceClient, logger)
 	observabilityHandler := handler.NewObservabilityHandler()
 	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler, observabilityHandler)
 	return engine
@@ -84,7 +85,8 @@ func InitArticleHandler(dao2 article.ArticleDAO) *handler.ArticleHandler {
 	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository2.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
-	articleHandler := handler.NewArticleHandler(articleService, interactiveService, logger)
+	interactiveServiceClient := InitInteractiveClient(interactiveService)
+	articleHandler := handler.NewArticleHandler(articleService, interactiveServiceClient, logger)
 	return articleHandler
 }
 
@@ -107,6 +109,34 @@ func InitAsyncSmsService(svc sms.Service) *async.Service {
 	asyncService := async.NewService(svc, asyncSmsRepository, logger)
 	return asyncService
 }
+
+func InitRankingService() service.RankingService {
+	gormDB := InitTestDB()
+	interactiveDAO := dao.NewGORMInteractiveDAO(gormDB)
+	cmdable := InitRedis()
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	logger := InitLogger()
+	interactiveRepository := repository2.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
+	interactiveServiceClient := InitInteractiveClient(interactiveService)
+	articleDAO := article.NewGORMArticleDAO(gormDB)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	userRepository := _wireCachedUserRepositoryValue
+	articleRepository := repository.NewArticleRepository(articleDAO, articleCache, userRepository, logger)
+	client := InitKafka()
+	syncProducer := NewSyncProducer(client)
+	producer := article2.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, logger, producer)
+	redisRankingCache := cache.NewRedisRankingCache(cmdable)
+	rankingLocalCache := cache.NewRankingLocalCache()
+	rankingRepository := repository.NewCachedRankingRepository(redisRankingCache, rankingLocalCache)
+	rankingService := service.NewBatchRankingService(interactiveServiceClient, articleService, rankingRepository)
+	return rankingService
+}
+
+var (
+	_wireCachedUserRepositoryValue = &repository.CachedUserRepository{}
+)
 
 func InitInteractiveService() service2.InteractiveService {
 	gormDB := InitTestDB()

@@ -26,7 +26,7 @@ type UserRepository interface {
 }
 
 // UserRepository 使用了缓存的 repository 实现
-type userRepository struct {
+type CachedUserRepository struct {
 	dao   user.UserDAO
 	cache cache.UserCache
 }
@@ -35,13 +35,13 @@ type userRepository struct {
 // 会从缓存和数据库中去尝试获得
 func NewUserRepository(d user.UserDAO,
 	c cache.UserCache) UserRepository {
-	return &userRepository{
+	return &CachedUserRepository{
 		dao:   d,
 		cache: c,
 	}
 }
 
-func (ur *userRepository) Update(ctx context.Context, u domain.User) error {
+func (ur *CachedUserRepository) Update(ctx context.Context, u domain.User) error {
 	err := ur.dao.UpdateNonZeroFields(ctx, ur.domainToEntity(u))
 	if err != nil {
 		return err
@@ -49,11 +49,11 @@ func (ur *userRepository) Update(ctx context.Context, u domain.User) error {
 	return ur.cache.Delete(ctx, u.Id)
 }
 
-func (ur *userRepository) Create(ctx context.Context, u domain.User) error {
+func (ur *CachedUserRepository) Create(ctx context.Context, u domain.User) error {
 	return ur.dao.Insert(ctx, ur.domainToEntity(u))
 }
 
-func (ur *userRepository) FindByWechat(ctx context.Context, openID string) (domain.User, error) {
+func (ur *CachedUserRepository) FindByWechat(ctx context.Context, openID string) (domain.User, error) {
 	u, err := ur.dao.FindByWechat(ctx, openID)
 	if err != nil {
 		return domain.User{}, err
@@ -61,17 +61,17 @@ func (ur *userRepository) FindByWechat(ctx context.Context, openID string) (doma
 	return ur.entityToDomain(u), err
 }
 
-func (ur *userRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+func (ur *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	u, err := ur.dao.FindByPhone(ctx, phone)
 	return ur.entityToDomain(u), err
 }
 
-func (ur *userRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
+func (ur *CachedUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	u, err := ur.dao.FindByEmail(ctx, email)
 	return ur.entityToDomain(u), err
 }
 
-func (ur *userRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+func (ur *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
 	u, err := ur.cache.Get(ctx, id)
 	if err == nil {
 		return u, err
@@ -85,7 +85,7 @@ func (ur *userRepository) FindById(ctx context.Context, id int64) (domain.User, 
 	return u, nil
 }
 
-func (ur *userRepository) entityToDomain(ue user.User) domain.User {
+func (ur *CachedUserRepository) entityToDomain(ue user.User) domain.User {
 	var birthday time.Time
 	if ue.Birthday.Valid {
 		birthday = time.UnixMilli(ue.Birthday.Int64)
@@ -104,7 +104,7 @@ func (ur *userRepository) entityToDomain(ue user.User) domain.User {
 	}
 }
 
-func (ur *userRepository) domainToEntity(u domain.User) user.User {
+func (ur *CachedUserRepository) domainToEntity(u domain.User) user.User {
 	return user.User{
 		Id: u.Id,
 		Email: sql.NullString{
