@@ -4,6 +4,8 @@ import (
 	"context"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
+	"ebook/cmd/pkg/migrator/events"
+	"github.com/ecodeclub/ekit/syncx/atomicx"
 	"gorm.io/gorm"
 )
 
@@ -14,9 +16,32 @@ type Validator[T migrator.Entity] struct {
 	// 校验的是谁的数据
 	target    *gorm.DB
 	l         logger.Logger
+	p         events.Producer
 	direction string
 
 	batchSize int
+
+	highLoad *atomicx.Value[bool]
+}
+
+func NewValidator[T migrator.Entity](
+	base *gorm.DB,
+	target *gorm.DB,
+	direction string,
+	l logger.Logger,
+	p events.Producer) *Validator[T] {
+	return &Validator[T]{
+		base:      base,
+		target:    target,
+		l:         l,
+		p:         p,
+		direction: direction,
+		highLoad:  atomicx.NewValueOf[bool](false),
+	}
+}
+
+func (v *Validator[T]) Validate(ctx context.Context) error {
+	panic("")
 }
 
 // <utime, id> 然后执行 SELECT * FROM xx WHERE utime > ? ORDER BY id
