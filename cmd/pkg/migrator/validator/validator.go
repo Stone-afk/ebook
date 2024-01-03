@@ -223,6 +223,12 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 	}
 }
 
+func (v *Validator[T]) notifyBaseMissing(ctx context.Context, ids []int64) {
+	for _, id := range ids {
+		v.notify(ctx, id, events.InconsistentEventTypeBaseMissing)
+	}
+}
+
 func (v *Validator[T]) notify(ctx context.Context, id int64, typ string) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	err := v.p.ProduceInconsistentEvent(ctx, events.InconsistentEvent{
