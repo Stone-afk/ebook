@@ -19,7 +19,9 @@ type Validator[T migrator.Entity] struct {
 	l         logger.Logger
 	p         events.Producer
 	direction string
-
+	// 在这里加字段，比如说，在查询 base 根据什么列来排序，在 target 的时候，根据什么列来查询数据
+	// 最极端的情况，是这样
+	utime         int64
 	batchSize     int
 	sleepInterval time.Duration
 	highLoad      *atomicx.Value[bool]
@@ -42,6 +44,11 @@ func NewValidator[T migrator.Entity](
 	}
 	res.fromBase = res.fullFromBase
 	return res
+}
+
+func (v *Validator[T]) Utime(utime int64) *Validator[T] {
+	v.utime = utime
+	return v
 }
 
 func (v *Validator[T]) SleepInterval(i time.Duration) *Validator[T] {
@@ -166,17 +173,54 @@ func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) 
 }
 
 // 理论上来说，可以利用 count 来加速这个过程，
-// 我举个例子，假如说你初始化目标表的数据是 昨天的 23:59:59 导出来的
-// 那么你可以 COUNT(*) WHERE ctime < 今天的零点，count 如果相等，就说明没删除
+// 举个例子，假如说初始化目标表的数据是 昨天的 23:59:59 导出来的
+// 那么可以 COUNT(*) WHERE ctime < 今天的零点，count 如果相等，就说明没删除
 // 这一步大多数情况下效果很好，尤其是那些软删除的。
-// 如果 count 不一致，那么接下来，你理论上来说，还可以分段 count
-// 比如说，我先 count 第一个月的数据，一旦有数据删除了，你还得一条条查出来
-// A utime=昨天
-// A 在 base 里面，今天删了，A 在 target 里面，utime 还是昨天
+// 如果 count 不一致，那么接下来，理论上来说，还可以分段 count
+// 比如说，先 count 第一个月的数据，一旦有数据删除了,你还得一条条查出来
+// A utime=昨天 , A 在 base 里面，今天删了，A 在 target 里面，utime 还是昨天
 // 这个地方，可以考虑不用 utime
 // A 在删除之前，已经被修改过了，那么 A 在 target 里面的 utime 就是今天了
 func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
-	panic("")
+	// 先找 target，再找 base，找出 base 中已经被删除的
+	// 理论上来说，就是 target 里面一条条找
+	offset := 0
+	for {
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		var dstTs []T
+		err := v.target.WithContext(dbCtx).
+			Where("utime > ?", v.utime).
+			Select("id").
+			Offset(offset).Limit(v.batchSize).
+			Order("utime").First(dstTs).Error
+		cancel()
+		if len(dstTs) == 0 {
+			// 没数据了。直接返回
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
+			continue
+		}
+		switch err {
+		case context.Canceled, context.DeadlineExceeded:
+			// 超时或者被人取消了
+			return
+		case gorm.ErrRecordNotFound:
+			// 没数据了。直接返回
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
+			continue
+		case nil:
+
+		default:
+			// 记录日志，continue 掉
+			v.l.Error("查询target 失败", logger.Error(err))
+		}
+		offset += v.batchSize
+	}
 }
 
 func (v *Validator[T]) notify(ctx context.Context, id int64, typ string) {
