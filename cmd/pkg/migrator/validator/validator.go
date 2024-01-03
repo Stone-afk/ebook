@@ -4,7 +4,10 @@ import (
 	"context"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
+	"ebook/cmd/pkg/migrator/events"
+	"github.com/ecodeclub/ekit/syncx/atomicx"
 	"gorm.io/gorm"
+	"time"
 )
 
 // Validator T 必须实现了 Entity 接口
@@ -14,9 +17,46 @@ type Validator[T migrator.Entity] struct {
 	// 校验的是谁的数据
 	target    *gorm.DB
 	l         logger.Logger
+	p         events.Producer
 	direction string
 
-	batchSize int
+	batchSize     int
+	sleepInterval time.Duration
+	highLoad      *atomicx.Value[bool]
+	fromBase      func(ctx context.Context, offset int) (T, error)
+}
+
+func NewValidator[T migrator.Entity](
+	base *gorm.DB,
+	target *gorm.DB,
+	direction string,
+	l logger.Logger,
+	p events.Producer) *Validator[T] {
+	res := &Validator[T]{
+		base:      base,
+		target:    target,
+		l:         l,
+		p:         p,
+		direction: direction,
+		highLoad:  atomicx.NewValueOf[bool](false),
+	}
+	res.fromBase = res.fullFromBase
+	return res
+}
+
+func (v *Validator[T]) SleepInterval(i time.Duration) *Validator[T] {
+	v.sleepInterval = i
+	return v
+}
+
+func (v *Validator[T]) SetFromBase(
+	fromBase func(ctx context.Context, offset int) (T, error)) *Validator[T] {
+	v.fromBase = fromBase
+	return v
+}
+
+func (v *Validator[T]) Validate(ctx context.Context) error {
+	panic("")
 }
 
 // <utime, id> 然后执行 SELECT * FROM xx WHERE utime > ? ORDER BY id
@@ -29,7 +69,100 @@ type Validator[T migrator.Entity] struct {
 // <utime, col1, col2>, <utime> 这种可以
 // <col1, utime> 这种就不可以
 func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
-	panic("")
+	offset := 0
+	for {
+		if v.highLoad.Load() {
+			time.Sleep(10 * time.Minute)
+		}
+		src, err := v.fromBase(ctx, offset)
+		switch err {
+		case context.Canceled, context.DeadlineExceeded:
+			// 超时或者被人取消了
+			return
+		case gorm.ErrRecordNotFound:
+			// 比完了。没数据了，全量校验结束了
+			// 同时支持全量校验和增量校验，你里就不能直接返回
+			// 在这里要考虑：有些情况下，用户希望退出，有些情况下。用户希望继续
+			// 当用户希望继续的时候要 sleep 一下
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
+			continue
+		case nil:
+			// 查到了数据
+			// 要去 target 里面找对应的数据
+			var dst T
+			err = v.target.WithContext(ctx).
+				Where("id = ?", src.ID()).First(&dst).Error
+			switch err {
+			case context.Canceled, context.DeadlineExceeded:
+				// 超时或者被人取消了
+				return
+			case gorm.ErrRecordNotFound:
+				// 意味着，target 里面少了当前这条数据
+				v.notify(ctx, src.ID(), events.InconsistentEventTypeTargetMissing)
+			case nil:
+				// 找到了。要开始比较
+				// 怎么比较？
+				// 能不能这么比？
+				// 1. src == dst
+				// 这是利用反射来比
+				// 这个原则上是可以的。
+				//if reflect.DeepEqual(src, dst) {
+				//
+				//}
+				//var srcAny any = src
+				//if c1, ok := srcAny.(interface {
+				//	// 有没有自定义的比较逻辑
+				//	CompareTo(c2 migrator.Entity) bool
+				//}); ok {
+				//	// 有，就用它的
+				//	if !c1.CompareTo(dst) {
+				//
+				//	}
+				//} else {
+				//	// 没有，我就用反射
+				//	if !reflect.DeepEqual(src, dst) {
+				//
+				//	}
+				//}
+				if !src.CompareTo(dst) {
+					// 不相等, 这时候，上报给 Kafka，告知数据不一致
+					v.notify(ctx, src.ID(), events.InconsistentEventTypeNEQ)
+				}
+			default:
+				// 这里，要不要汇报，数据不一致？
+				// 有两种做法：
+				// 1. 认为，大概率数据是一致的，记录一下日志，下一条
+				v.l.Error("查询 target 数据失败", logger.Error(err))
+				// 2. 认为，出于保险起见，应该发送kafka通知报数据不一致，试着去修一下
+				// 如果真的不一致了，执行修复
+				// 如果假的不一致（也就是数据一致），也没事，就是多修了一次
+				// 不好用哪个 InconsistentType
+			}
+		default:
+			// 数据库错误
+			v.l.Error("校验数据，查询 base 出错", logger.Error(err))
+			// 课堂演示方便，你可以删掉
+			time.Sleep(time.Second)
+		}
+		offset++
+	}
+}
+
+func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	// 找到了 base 中的数据
+	// 例如 .Order("id DESC")，每次插入数据，就会导致你的 offset 不准了
+	// 如果我的表没有 id 这个列怎么办？
+	// 找一个类似的列，比如说 ctime (创建时间）
+	err := v.base.WithContext(dbCtx).
+		Offset(offset).
+		Order("id").First(&src).Error
+	return src, err
 }
 
 // 理论上来说，可以利用 count 来加速这个过程，
@@ -44,4 +177,20 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 // A 在删除之前，已经被修改过了，那么 A 在 target 里面的 utime 就是今天了
 func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 	panic("")
+}
+
+func (v *Validator[T]) notify(ctx context.Context, id int64, typ string) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	err := v.p.ProduceInconsistentEvent(ctx, events.InconsistentEvent{
+		ID:        id,
+		Direction: v.direction,
+		Type:      typ,
+	})
+	cancel()
+	if err != nil {
+		// 这又是一个问题
+		// 怎么办？ 可以重试，但是重试也会失败，记日志，告警，手动去修
+		// 直接忽略，下一轮修复和校验又会找出来
+		v.l.Error("发送数据不一致的消息失败", logger.Error(err))
+	}
 }
