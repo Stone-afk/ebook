@@ -7,6 +7,7 @@ import (
 	"ebook/cmd/pkg/migrator/events"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/ecodeclub/ekit/syncx/atomicx"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 	"time"
 )
@@ -64,7 +65,17 @@ func (v *Validator[T]) SetFromBase(
 }
 
 func (v *Validator[T]) Validate(ctx context.Context) error {
-	panic("")
+	var eg errgroup.Group
+	eg.Go(func() error {
+		v.validateBaseToTarget(ctx)
+		return nil
+	})
+
+	eg.Go(func() error {
+		v.validateTargetToBase(ctx)
+		return nil
+	})
+	return eg.Wait()
 }
 
 // <utime, id> 然后执行 SELECT * FROM xx WHERE utime > ? ORDER BY id
