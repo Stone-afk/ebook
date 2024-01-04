@@ -5,6 +5,7 @@ import (
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
 	"ebook/cmd/pkg/migrator/events"
+	"github.com/ecodeclub/ekit/slice"
 	"github.com/ecodeclub/ekit/syncx/atomicx"
 	"gorm.io/gorm"
 	"time"
@@ -214,7 +215,31 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 			time.Sleep(v.sleepInterval)
 			continue
 		case nil:
-
+			ids := slice.Map(dstTs, func(idx int, t T) int64 {
+				return t.ID()
+			})
+			// 可以直接用 NOT IN
+			var srcTs []T
+			err = v.base.WithContext(ctx).
+				Where("id IN ?", ids).Find(&srcTs).Error
+			switch err {
+			case context.Canceled, context.DeadlineExceeded:
+				// 超时或者被人取消了
+				return
+			case gorm.ErrRecordNotFound:
+				v.notifyBaseMissing(ctx, ids)
+			case nil:
+				srcIds := slice.Map(srcTs, func(idx int, t T) int64 {
+					return t.ID()
+				})
+				// 计算差集
+				// 也就是，src 里面的没有的
+				diff := slice.DiffSet(ids, srcIds)
+				v.notifyBaseMissing(ctx, diff)
+			default:
+				// 记录日志
+				v.l.Error("查询 base失败", logger.Error(err))
+			}
 		default:
 			// 记录日志，continue 掉
 			v.l.Error("查询target 失败", logger.Error(err))
