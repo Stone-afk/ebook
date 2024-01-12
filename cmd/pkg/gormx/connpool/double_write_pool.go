@@ -46,3 +46,9 @@ func (d *DoubleWritePool) UpdatePattern(pattern string) {
 	// 能不能，有事务未提交的情况下，禁止修改
 	// 能，但是性能问题比较严重，需要维持住一个已开事务的计数，要用锁了
 }
+
+type DoubleWritePoolTx struct {
+	src     *sql.Tx
+	dst     *sql.Tx
+	pattern string
+}
