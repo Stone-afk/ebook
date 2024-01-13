@@ -8,6 +8,13 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	patternDstOnly  = "DST_ONLY"
+	patternSrcOnly  = "SRC_ONLY"
+	patternDstFirst = "DST_FIRST"
+	patternSrcFirst = "SRC_FIRST"
+)
+
 var errUnknownPattern = errors.New("未知的双写模式")
 
 type DoubleWritePool struct {
@@ -26,7 +33,7 @@ func NewDoubleWritePool(src gorm.ConnPool,
 }
 
 // PrepareContext Prepare 的语句会进来这里
-func (d *DoubleWritePool) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+func (p *DoubleWritePool) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	// sql.Stmt 是一个结构体，没有办法说返回一个代表双写的 Stmt
 	panic("implement me")
 	//return nil, errors.New("双写模式下不支持")
@@ -41,8 +48,54 @@ func (d *DoubleWritePool) PrepareContext(ctx context.Context, query string) (*sq
 	//}
 }
 
-func (d *DoubleWritePool) UpdatePattern(pattern string) {
-	d.pattern.Store(pattern)
+// ExecContext 在增量校验的时候，我能不能利用这个方法？
+// 1.1 能不能从 query 里面抽取出来主键， WHERE id= xxx ，然后我就知道哪些数据被影响了？
+// 1.2 可以尝试的思路是：用抽象语法树来分析 query， 而后找出 query 里面的条件，执行一个 SELECT，判定有哪些 id
+// 1.2.1 UPDATE xx set b = xx WHERE a = 1
+// 1.2.2 UPDATE xx set a = xx WHERE a = 1 LIMIT 10; DELETE from xxx WHERE aa OFFSET abc LIMIT cde
+// 1.2.3 INSERT INTO ON CONFLICT, upsert 语句
+func (p *DoubleWritePool) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	switch p.pattern.Load() {
+	case patternSrcOnly:
+		return p.src.ExecContext(ctx, query, args...)
+	case patternSrcFirst:
+		res, err := p.src.ExecContext(ctx, query, args...)
+		if err != nil {
+			return res, err
+		}
+		if p.dst == nil {
+			return res, err
+		}
+		res, err = p.dst.ExecContext(ctx, query, args...)
+		if err != nil {
+			// 记日志
+			// dst 写失败，不被认为是失败
+		}
+		return res, err
+	case patternDstOnly:
+		return p.dst.ExecContext(ctx, query, args...)
+	case patternDstFirst:
+		res, err := p.dst.ExecContext(ctx, query, args...)
+		if err != nil {
+			return res, err
+		}
+		if p.src == nil {
+			return res, err
+		}
+		res, err = p.src.ExecContext(ctx, query, args...)
+		if err != nil {
+			// 记日志
+			// dst 写失败，不被认为是失败
+		}
+		return res, err
+	default:
+		//panic("未知的双写模式")
+		return nil, errors.New("未知的双写模式")
+	}
+}
+
+func (p *DoubleWritePool) UpdatePattern(pattern string) {
+	p.pattern.Store(pattern)
 	// 能不能，有事务未提交的情况下，禁止修改
 	// 能，但是性能问题比较严重，需要维持住一个已开事务的计数，要用锁了
 }
