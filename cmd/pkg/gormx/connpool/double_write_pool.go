@@ -48,6 +48,62 @@ func (p *DoubleWritePool) PrepareContext(ctx context.Context, query string) (*sq
 	//}
 }
 
+func (p *DoubleWritePool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.ConnPool, error) {
+	pattern := p.pattern.Load()
+	switch pattern {
+	case patternSrcOnly:
+		tx, err := p.src.(gorm.TxBeginner).BeginTx(ctx, opts)
+		return &DoubleWritePoolTx{
+			src:     tx,
+			pattern: pattern,
+		}, err
+	case patternSrcFirst:
+		srcTx, err := p.src.(gorm.TxBeginner).BeginTx(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		dstTx, err := p.dst.(gorm.TxBeginner).BeginTx(ctx, opts)
+		if err != nil {
+			// 记录日志，然后不做处理
+
+			// 可以考虑回滚
+			// err = srcTx.Rollback()
+			// return err
+		}
+		return &DoubleWritePoolTx{
+			src:     srcTx,
+			dst:     dstTx,
+			pattern: pattern,
+		}, nil
+	case patternDstOnly:
+		tx, err := p.dst.(gorm.TxBeginner).BeginTx(ctx, opts)
+		return &DoubleWritePoolTx{
+			src:     tx,
+			pattern: pattern,
+		}, err
+	case patternDstFirst:
+		dstTx, err := p.dst.(gorm.TxBeginner).BeginTx(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		srcTx, err := p.src.(gorm.TxBeginner).BeginTx(ctx, opts)
+		if err != nil {
+			// 记录日志，然后不做处理
+
+			// 可以考虑回滚
+			// err = dstTx.Rollback()
+			// return err
+		}
+		return &DoubleWritePoolTx{
+			src:     srcTx,
+			dst:     dstTx,
+			pattern: pattern,
+		}, nil
+	default:
+		return nil, errors.New("未知的双写模式")
+	}
+}
+
 // ExecContext 在增量校验的时候，我能不能利用这个方法？
 // 1.1 能不能从 query 里面抽取出来主键， WHERE id= xxx ，然后我就知道哪些数据被影响了？
 // 1.2 可以尝试的思路是：用抽象语法树来分析 query， 而后找出 query 里面的条件，执行一个 SELECT，判定有哪些 id
@@ -129,4 +185,29 @@ type DoubleWritePoolTx struct {
 	src     *sql.Tx
 	dst     *sql.Tx
 	pattern string
+}
+
+// Commit 和 PPT 不一致
+func (p *DoubleWritePoolTx) Commit() error {
+	panic("implement me")
+}
+
+func (p *DoubleWritePoolTx) Rollback() error {
+	panic("implement me")
+}
+
+func (p *DoubleWritePoolTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	panic("implement me")
+}
+
+func (p *DoubleWritePoolTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	panic("implement me")
+}
+
+func (p *DoubleWritePoolTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	panic("implement me")
+}
+
+func (p *DoubleWritePoolTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	panic("implement me")
 }
