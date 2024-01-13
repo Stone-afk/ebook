@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"github.com/ecodeclub/ekit/syncx/atomicx"
 	"gorm.io/gorm"
 )
@@ -32,6 +33,45 @@ func NewDoubleWriteDAOV1(src *gorm.DB, dst *gorm.DB) *DoubleWriteDAO {
 		src:     NewGORMInteractiveDAO(src),
 		dst:     NewGORMInteractiveDAO(dst),
 		pattern: atomicx.NewValueOf(patternSrcOnly),
+	}
+}
+
+// IncrReadCnt AST + 模板变成=代码生成
+func (d *DoubleWriteDAO) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
+	switch d.pattern.Load() {
+	case patternSrcOnly:
+		return d.src.IncrReadCnt(ctx, biz, bizId)
+	case patternSrcFirst:
+		err := d.src.IncrReadCnt(ctx, biz, bizId)
+		if err != nil {
+			// 怎么办？
+			// 要不要继续写 DST？
+			// 这里有一个问题，万一 err 是超时错误呢？
+			return err
+		}
+		// 这里有一个问题， SRC 成功了，但是 DST 失败了怎么办？
+		// 等校验与修复
+		err = d.dst.IncrReadCnt(ctx, biz, bizId)
+		if err != nil {
+			// 记日志
+			// dst 写失败，不被认为是失败
+		}
+		return nil
+	case patternDstOnly:
+		return d.dst.IncrReadCnt(ctx, biz, bizId)
+	case patternDstFirst:
+		err := d.dst.IncrReadCnt(ctx, biz, bizId)
+		if err != nil {
+			return err
+		}
+		err = d.src.IncrReadCnt(ctx, biz, bizId)
+		if err != nil {
+			// 记日志
+			// src 写失败，不被认为是失败
+		}
+		return nil
+	default:
+		return errors.New("未知的双写模式")
 	}
 }
 
