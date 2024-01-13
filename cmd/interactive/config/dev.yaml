@@ -2,7 +2,7 @@ db:
   src:
     dsn: "root:root@tcp(localhost:13316)/ebook"
   dst:
-    dsn: "root:root@tcp(localhost:13316)/ebook_intr"
+    dsn: "root:root@tcp(localhost:13316)/ebook_interactive"
 
 redis:
   addr: "localhost:16379"

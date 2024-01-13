@@ -1,2 +1,2 @@
 create database ebook;
-create database ebook_intr;
+create database ebook_interactive;
