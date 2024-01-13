@@ -1,5 +1,8 @@
 db:
-  dsn: "root:root@tcp(localhost:13316)/ebook"
+  src:
+    dsn: "root:root@tcp(localhost:13316)/ebook"
+  dst:
+    dsn: "root:root@tcp(localhost:13316)/ebook_intr"
 
 redis:
   addr: "localhost:16379"
