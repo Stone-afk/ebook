@@ -189,11 +189,82 @@ type DoubleWritePoolTx struct {
 
 // Commit 和 PPT 不一致
 func (p *DoubleWritePoolTx) Commit() error {
-	panic("implement me")
+	switch p.pattern {
+	case patternSrcOnly:
+		return p.src.Commit()
+	case patternSrcFirst:
+		// 源库上的事务失败了，目标库要不要提交
+		// commit 失败了怎么办？
+		err := p.src.Commit()
+		if err != nil {
+			// 要不要提交？
+			return err
+		}
+		if p.dst != nil {
+			err = p.dst.Commit()
+			if err != nil {
+				// 记录日志
+			}
+		}
+		return nil
+	case patternDstOnly:
+		return p.dst.Commit()
+	case patternDstFirst:
+		err := p.dst.Commit()
+		if err != nil {
+			// 要不要提交？
+			return err
+		}
+		if p.src != nil {
+			err = p.src.Commit()
+			if err != nil {
+				// 记录日志
+			}
+		}
+		return nil
+	default:
+		return errUnknownPattern
+	}
 }
 
 func (p *DoubleWritePoolTx) Rollback() error {
-	panic("implement me")
+	switch p.pattern {
+	case patternSrcOnly:
+		return p.src.Rollback()
+	case patternSrcFirst:
+		// 源库上的事务失败了，目标库要不要提交
+		// commit 失败嘞怎么办？
+		err := p.src.Rollback()
+		if err != nil {
+			// 要不要提交？
+			// 我个人觉得 可以尝试 rollback
+			return err
+		}
+		if p.dst != nil {
+			err = p.dst.Rollback()
+			if err != nil {
+				// 记录日志
+			}
+		}
+		return nil
+	case patternDstOnly:
+		return p.dst.Rollback()
+	case patternDstFirst:
+		err := p.dst.Rollback()
+		if err != nil {
+			// 要不要提交？
+			return err
+		}
+		if p.src != nil {
+			err = p.src.Rollback()
+			if err != nil {
+				// 记录日志
+			}
+		}
+		return nil
+	default:
+		return errUnknownPattern
+	}
 }
 
 func (p *DoubleWritePoolTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
