@@ -163,7 +163,6 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 		default:
 			// 数据库错误
 			v.l.Error("校验数据，查询 base 出错", logger.Error(err))
-			// 课堂演示方便，你可以删掉
 			time.Sleep(time.Second)
 		}
 		offset++
