@@ -1,25 +1,32 @@
 package scheduler
 
 import (
+	"context"
 	"ebook/cmd/pkg/ginx"
 	"ebook/cmd/pkg/gormx/connpool"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
 	"ebook/cmd/pkg/migrator/events"
+	"ebook/cmd/pkg/migrator/validator"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"sync"
+	"time"
 )
 
 // Scheduler 用来统一管理整个迁移过程
 // 它不是必须的，可以理解为这是为了方便用户操作（和你理解）而引入的。
 type Scheduler[T migrator.Entity] struct {
-	l       logger.Logger
-	lock    sync.Mutex
-	src     *gorm.DB
-	dst     *gorm.DB
-	pool    *connpool.DoubleWritePool
-	pattern string
+	l          logger.Logger
+	lock       sync.Mutex
+	src        *gorm.DB
+	dst        *gorm.DB
+	producer   events.Producer
+	pool       *connpool.DoubleWritePool
+	pattern    string
+	cancelFull func()
+	cancelIncr func()
 	// 如果你要允许多个全量校验同时运行
 	fulls map[string]func()
 }
@@ -28,7 +35,7 @@ func NewScheduler[T migrator.Entity](
 	l logger.Logger,
 	src *gorm.DB,
 	dst *gorm.DB,
-// 这个是业务用的 DoubleWritePool
+	// 这个是业务用的 DoubleWritePool
 	pool *connpool.DoubleWritePool,
 	producer events.Producer) *Scheduler[T] {
 	return &Scheduler[T]{
@@ -88,6 +95,55 @@ func (s *Scheduler[T]) DstOnly(c *gin.Context) (ginx.Result[any], error) {
 	return ginx.Result[any]{
 		Msg: "ok",
 	}, nil
+}
+
+func (s *Scheduler[T]) StopIncrementValidation(c *gin.Context) (ginx.Result[any], error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.cancelIncr()
+	return ginx.Result[any]{
+		Msg: "OK",
+	}, nil
+}
+
+func (s *Scheduler[T]) StartIncrementValidation(c *gin.Context,
+	req StartIncrRequest) (ginx.Result[any], error) {
+	// 开启增量校验
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	// 取消上一次的
+	cancel := s.cancelIncr
+	v, err := s.newValidator()
+	if err != nil {
+		return ginx.Result[any]{
+			Code: 5,
+			Msg:  "系统异常",
+		}, nil
+	}
+	v.Incr().Utime(req.Utime).SleepInterval(
+		time.Duration(req.Interval) * time.Millisecond)
+	go func() {
+		var ctx context.Context
+		ctx, s.cancelIncr = context.WithCancel(context.Background())
+		cancel()
+		err = v.Validate(ctx)
+		s.l.Warn("退出增量校验", logger.Error(err))
+	}()
+
+	return ginx.Result[any]{
+		Msg: "启动增量校验成功",
+	}, nil
+}
+
+func (s *Scheduler[T]) newValidator() (*validator.Validator[T], error) {
+	switch s.pattern {
+	case connpool.PatternSrcOnly, connpool.PatternSrcFirst:
+		return validator.NewValidator[T](s.src, s.dst, "SRC", s.l, s.producer), nil
+	case connpool.PatternDstFirst, connpool.PatternDstOnly:
+		return validator.NewValidator[T](s.dst, s.src, "DST", s.l, s.producer), nil
+	default:
+		return nil, fmt.Errorf("未知的 pattern %s", s.pattern)
+	}
 }
 
 type StartIncrRequest struct {

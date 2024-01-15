@@ -64,6 +64,11 @@ func (v *Validator[T]) SetFromBase(
 	return v
 }
 
+func (v *Validator[T]) Incr() *Validator[T] {
+	v.fromBase = v.intrFromBase
+	return v
+}
+
 func (v *Validator[T]) Validate(ctx context.Context) error {
 	var eg errgroup.Group
 	eg.Go(func() error {
@@ -169,6 +174,27 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 	}
 }
 
+// intrFromBase 增量校验
+func (v *Validator[T]) intrFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	// 找到了 base 中的数据
+	// 例如 .Order("id DESC")，每次插入数据，就会导致你的 offset 不准了
+	// 如果表没有 id 这个列怎么办？
+	// 找一个类似的列，比如说 ctime (创建时间）
+	err := v.base.WithContext(dbCtx).
+		// 最好不要取等号
+		Where("utime > ?", v.utime).
+		Offset(offset).
+		Order("utime ASC, id ASC").First(&src).Error
+	// 按段取
+	// WHERE utime >= ? LIMIT 10 ORDER BY UTIME
+	// v.utime = srcList[len(srcList)].Utime()
+	return src, err
+}
+
+// fullFromBase 全量校验
 func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
 	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
