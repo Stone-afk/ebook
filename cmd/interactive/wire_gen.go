@@ -21,20 +21,28 @@ import (
 
 //go:generate wire
 func Init() *App {
-	db := ioc.InitDB()
+	logger := ioc.InitLogger()
+	srcDB := ioc.InitSRC(logger)
+	dstDB := ioc.InitDST(logger)
+	doubleWritePool := ioc.InitDoubleWritePool(srcDB, dstDB)
+	db := ioc.InitBizDB(doubleWritePool)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	cmdable := ioc.InitRedis()
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	logger := ioc.InitLogger()
 	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
 	server := ioc.InitGRPCxServer(interactiveServiceServer)
 	client := ioc.InitKafka()
+	syncProducer := ioc.InitSyncProducer(client)
+	producer := ioc.InitMigradatorProducer(syncProducer)
+	ginxServer := ioc.InitMigratorWeb(logger, srcDB, dstDB, doubleWritePool, producer)
 	interactiveReadEventConsumer := article.NewInteractiveReadEventConsumer(client, interactiveRepository, logger)
-	v := ioc.NewConsumers(interactiveReadEventConsumer)
+	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, client)
+	v := ioc.NewConsumers(interactiveReadEventConsumer, consumer)
 	app := &App{
 		server:    server,
+		webAdmin:  ginxServer,
 		consumers: v,
 	}
 	return app
@@ -44,4 +52,6 @@ func Init() *App {
 
 var serviceProvider = wire.NewSet(dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache, repository.NewInteractiveRepository, service.NewInteractiveService)
 
-var thirdProvider = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, ioc.InitKafka)
+var thirdProvider = wire.NewSet(ioc.InitDST, ioc.InitSRC, ioc.InitBizDB, ioc.InitDoubleWritePool, ioc.InitRedis, ioc.InitLogger, ioc.InitSyncProducer, ioc.InitKafka)
+
+var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitMigradatorProducer)

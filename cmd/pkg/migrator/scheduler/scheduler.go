@@ -39,11 +39,18 @@ func NewScheduler[T migrator.Entity](
 	pool *connpool.DoubleWritePool,
 	producer events.Producer) *Scheduler[T] {
 	return &Scheduler[T]{
-		l:       l,
-		src:     src,
-		dst:     dst,
+		l:        l,
+		src:      src,
+		dst:      dst,
+		pool:     pool,
+		producer: producer,
+		cancelFull: func() {
+			// 初始的时候，啥也不用做
+		},
+		cancelIncr: func() {
+			// 初始的时候，啥也不用做
+		},
 		pattern: connpool.PatternSrcOnly,
-		pool:    pool,
 	}
 }
 
@@ -52,6 +59,14 @@ func NewScheduler[T migrator.Entity](
 func (s *Scheduler[T]) RegisterRoutes(server *gin.RouterGroup) {
 	// 将这个暴露为 HTTP 接口
 	// 可以配上对应的 UI
+	server.POST("/src_only", ginx.Wrap(s.l, s.SrcOnly))
+	server.POST("/src_first", ginx.Wrap(s.l, s.SrcFirst))
+	server.POST("/dst_first", ginx.Wrap(s.l, s.DstFirst))
+	server.POST("/dst_only", ginx.Wrap(s.l, s.DstOnly))
+	server.POST("/full/start", ginx.Wrap(s.l, s.StartFullValidation))
+	server.POST("/full/stop", ginx.Wrap(s.l, s.StopFullValidation))
+	server.POST("/incr/stop", ginx.Wrap(s.l, s.StopIncrementValidation))
+	server.POST("/incr/start", ginx.WrapBody[StartIncrRequest](s.l, s.StartIncrementValidation))
 }
 
 // ---- 下面是四个阶段 ---- //
@@ -101,6 +116,44 @@ func (s *Scheduler[T]) StopIncrementValidation(c *gin.Context) (ginx.Result[any]
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.cancelIncr()
+	return ginx.Result[any]{
+		Msg: "OK",
+	}, nil
+}
+
+func (s *Scheduler[T]) StopFullValidation(c *gin.Context) (ginx.Result[any], error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.cancelFull()
+	return ginx.Result[any]{
+		Msg: "OK",
+	}, nil
+}
+
+// StartFullValidation 全量校验
+func (s *Scheduler[T]) StartFullValidation(c *gin.Context) (ginx.Result[any], error) {
+	// 可以考虑去重的问题
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	// 取消上一次的
+	cancel := s.cancelFull
+	v, err := s.newValidator()
+	if err != nil {
+		return ginx.Result[any]{
+			Code: 5,
+			Msg:  "系统异常",
+		}, nil
+	}
+	var ctx context.Context
+	ctx, s.cancelFull = context.WithCancel(context.Background())
+	go func() {
+		// 先取消上一次的
+		cancel()
+		err = v.Validate(ctx)
+		if err != nil {
+			s.l.Warn("退出全量校验", logger.Error(err))
+		}
+	}()
 	return ginx.Result[any]{
 		Msg: "OK",
 	}, nil

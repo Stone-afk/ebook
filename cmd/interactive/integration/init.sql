@@ -1,5 +1,5 @@
-create database if not exists ebook;
-create table if not exists ebook.interactives
+create database if not exists ebook_interactive;
+create table if not exists ebook_interactive.interactives
 (
     id          bigint auto_increment
         primary key,
@@ -14,7 +14,7 @@ create table if not exists ebook.interactives
         unique (biz_id, biz)
 );
 
-create table if not exists ebook.user_collection_bizs
+create table if not exists ebook_interactive.user_collection_bizs
 (
     id     bigint auto_increment
         primary key,
@@ -29,9 +29,9 @@ create table if not exists ebook.user_collection_bizs
 );
 
 create index idx_user_collection_bizs_cid
-    on ebook.user_collection_bizs (cid);
+    on ebook_interactive.user_collection_bizs (cid);
 
-create table if not exists ebook.user_like_bizs
+create table if not exists ebook_interactive.user_like_bizs
 (
     id     bigint auto_increment
         primary key,

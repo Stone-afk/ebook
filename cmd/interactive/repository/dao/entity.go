@@ -1,5 +1,7 @@
 package dao
 
+import "ebook/cmd/pkg/migrator"
+
 // SELECT c.id as cid , c.name as cname, uc.biz_id as biz_id, uc.biz as biz
 // FROM `collection` as c JOIN `user_collection_biz` as uc
 // ON c.id = uc.cid
@@ -111,6 +113,15 @@ type Interactive struct {
 	CollectCnt int64
 	Ctime      int64
 	Utime      int64
+}
+
+func (i Interactive) ID() int64 {
+	return i.Id
+}
+
+func (i Interactive) CompareTo(dst migrator.Entity) bool {
+	dstVal, ok := dst.(Interactive)
+	return ok && i == dstVal
 }
 
 // InteractiveV1 对写更友好

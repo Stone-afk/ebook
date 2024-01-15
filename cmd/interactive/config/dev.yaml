@@ -4,6 +4,11 @@ db:
   dst:
     dsn: "root:root@tcp(localhost:13316)/ebook_interactive"
 
+migrator:
+  pattern: "SRC_ONLY"
+  web:
+    addr: ":8082"
+
 redis:
   addr: "localhost:16379"
 

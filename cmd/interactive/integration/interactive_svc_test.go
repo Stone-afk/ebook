@@ -1,10 +1,10 @@
-package intergration
+package integration
 
 import (
 	"context"
 	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
 	"ebook/cmd/interactive/grpc"
-	"ebook/cmd/interactive/intergration/startup"
+	"ebook/cmd/interactive/integration/startup"
 	"ebook/cmd/interactive/repository/dao"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
