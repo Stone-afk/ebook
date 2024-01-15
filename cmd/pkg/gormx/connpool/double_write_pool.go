@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	patternDstOnly  = "DST_ONLY"
-	patternSrcOnly  = "SRC_ONLY"
-	patternDstFirst = "DST_FIRST"
-	patternSrcFirst = "SRC_FIRST"
+	PatternDstOnly  = "DST_ONLY"
+	PatternSrcOnly  = "SRC_ONLY"
+	PatternDstFirst = "DST_FIRST"
+	PatternSrcFirst = "SRC_FIRST"
 )
 
 var errUnknownPattern = errors.New("未知的双写模式")
@@ -24,11 +24,11 @@ type DoubleWritePool struct {
 }
 
 func NewDoubleWritePool(src gorm.ConnPool,
-	dst gorm.ConnPool, pattern string) *DoubleWritePool {
+	dst gorm.ConnPool, Pattern string) *DoubleWritePool {
 	return &DoubleWritePool{
 		src:     src,
 		dst:     dst,
-		pattern: atomicx.NewValueOf(pattern),
+		pattern: atomicx.NewValueOf(Pattern),
 	}
 }
 
@@ -37,7 +37,7 @@ func (p *DoubleWritePool) PrepareContext(ctx context.Context, query string) (*sq
 	// sql.Stmt 是一个结构体，没有办法说返回一个代表双写的 Stmt
 	panic("implement me")
 	//return nil, errors.New("双写模式下不支持")
-	//switch d.pattern.Load() {
+	//switch d.Pattern.Load() {
 	//case PatternSrcOnly, PatternSrcFirst:
 	//	return d.src.PrepareContext(ctx, query)
 	//case PatternDstOnly, PatternDstFirst:
@@ -49,15 +49,15 @@ func (p *DoubleWritePool) PrepareContext(ctx context.Context, query string) (*sq
 }
 
 func (p *DoubleWritePool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.ConnPool, error) {
-	pattern := p.pattern.Load()
-	switch pattern {
-	case patternSrcOnly:
+	Pattern := p.pattern.Load()
+	switch Pattern {
+	case PatternSrcOnly:
 		tx, err := p.src.(gorm.TxBeginner).BeginTx(ctx, opts)
 		return &DoubleWritePoolTx{
 			src:     tx,
-			pattern: pattern,
+			Pattern: Pattern,
 		}, err
-	case patternSrcFirst:
+	case PatternSrcFirst:
 		srcTx, err := p.src.(gorm.TxBeginner).BeginTx(ctx, opts)
 		if err != nil {
 			return nil, err
@@ -73,15 +73,15 @@ func (p *DoubleWritePool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gor
 		return &DoubleWritePoolTx{
 			src:     srcTx,
 			dst:     dstTx,
-			pattern: pattern,
+			Pattern: Pattern,
 		}, nil
-	case patternDstOnly:
+	case PatternDstOnly:
 		tx, err := p.dst.(gorm.TxBeginner).BeginTx(ctx, opts)
 		return &DoubleWritePoolTx{
 			src:     tx,
-			pattern: pattern,
+			Pattern: Pattern,
 		}, err
-	case patternDstFirst:
+	case PatternDstFirst:
 		dstTx, err := p.dst.(gorm.TxBeginner).BeginTx(ctx, opts)
 		if err != nil {
 			return nil, err
@@ -97,7 +97,7 @@ func (p *DoubleWritePool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gor
 		return &DoubleWritePoolTx{
 			src:     srcTx,
 			dst:     dstTx,
-			pattern: pattern,
+			Pattern: Pattern,
 		}, nil
 	default:
 		return nil, errors.New("未知的双写模式")
@@ -112,9 +112,9 @@ func (p *DoubleWritePool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gor
 // 1.2.3 INSERT INTO ON CONFLICT, upsert 语句
 func (p *DoubleWritePool) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	switch p.pattern.Load() {
-	case patternSrcOnly:
+	case PatternSrcOnly:
 		return p.src.ExecContext(ctx, query, args...)
-	case patternSrcFirst:
+	case PatternSrcFirst:
 		res, err := p.src.ExecContext(ctx, query, args...)
 		if err != nil {
 			return res, err
@@ -128,9 +128,9 @@ func (p *DoubleWritePool) ExecContext(ctx context.Context, query string, args ..
 			// dst 写失败，不被认为是失败
 		}
 		return res, err
-	case patternDstOnly:
+	case PatternDstOnly:
 		return p.dst.ExecContext(ctx, query, args...)
-	case patternDstFirst:
+	case PatternDstFirst:
 		res, err := p.dst.ExecContext(ctx, query, args...)
 		if err != nil {
 			return res, err
@@ -152,9 +152,9 @@ func (p *DoubleWritePool) ExecContext(ctx context.Context, query string, args ..
 
 func (p *DoubleWritePool) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	switch p.pattern.Load() {
-	case patternSrcOnly, patternSrcFirst:
+	case PatternSrcOnly, PatternSrcFirst:
 		return p.src.QueryContext(ctx, query, args...)
-	case patternDstOnly, patternDstFirst:
+	case PatternDstOnly, PatternDstFirst:
 		return p.dst.QueryContext(ctx, query, args...)
 	default:
 		// panic("未知的双写模式")
@@ -164,9 +164,9 @@ func (p *DoubleWritePool) QueryContext(ctx context.Context, query string, args .
 
 func (p *DoubleWritePool) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	switch p.pattern.Load() {
-	case patternSrcOnly, patternSrcFirst:
+	case PatternSrcOnly, PatternSrcFirst:
 		return p.src.QueryRowContext(ctx, query, args...)
-	case patternDstOnly, patternDstFirst:
+	case PatternDstOnly, PatternDstFirst:
 		return p.dst.QueryRowContext(ctx, query, args...)
 	default:
 		// 这里有一个问题，怎么返回一个 error
@@ -175,8 +175,8 @@ func (p *DoubleWritePool) QueryRowContext(ctx context.Context, query string, arg
 	}
 }
 
-func (p *DoubleWritePool) UpdatePattern(pattern string) {
-	p.pattern.Store(pattern)
+func (p *DoubleWritePool) UpdatePattern(Pattern string) {
+	p.pattern.Store(Pattern)
 	// 能不能，有事务未提交的情况下，禁止修改
 	// 能，但是性能问题比较严重，需要维持住一个已开事务的计数，要用锁了
 }
@@ -184,15 +184,15 @@ func (p *DoubleWritePool) UpdatePattern(pattern string) {
 type DoubleWritePoolTx struct {
 	src     *sql.Tx
 	dst     *sql.Tx
-	pattern string
+	Pattern string
 }
 
 // Commit 和 PPT 不一致
 func (p *DoubleWritePoolTx) Commit() error {
-	switch p.pattern {
-	case patternSrcOnly:
+	switch p.Pattern {
+	case PatternSrcOnly:
 		return p.src.Commit()
-	case patternSrcFirst:
+	case PatternSrcFirst:
 		// 源库上的事务失败了，目标库要不要提交
 		// commit 失败了怎么办？
 		err := p.src.Commit()
@@ -207,9 +207,9 @@ func (p *DoubleWritePoolTx) Commit() error {
 			}
 		}
 		return nil
-	case patternDstOnly:
+	case PatternDstOnly:
 		return p.dst.Commit()
-	case patternDstFirst:
+	case PatternDstFirst:
 		err := p.dst.Commit()
 		if err != nil {
 			// 要不要提交？
@@ -228,10 +228,10 @@ func (p *DoubleWritePoolTx) Commit() error {
 }
 
 func (p *DoubleWritePoolTx) Rollback() error {
-	switch p.pattern {
-	case patternSrcOnly:
+	switch p.Pattern {
+	case PatternSrcOnly:
 		return p.src.Rollback()
-	case patternSrcFirst:
+	case PatternSrcFirst:
 		// 源库上的事务失败了，目标库要不要提交
 		// commit 失败嘞怎么办？
 		err := p.src.Rollback()
@@ -247,9 +247,9 @@ func (p *DoubleWritePoolTx) Rollback() error {
 			}
 		}
 		return nil
-	case patternDstOnly:
+	case PatternDstOnly:
 		return p.dst.Rollback()
-	case patternDstFirst:
+	case PatternDstFirst:
 		err := p.dst.Rollback()
 		if err != nil {
 			// 要不要提交？
@@ -272,10 +272,10 @@ func (p *DoubleWritePoolTx) PrepareContext(ctx context.Context, query string) (*
 }
 
 func (p *DoubleWritePoolTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	switch p.pattern {
-	case patternSrcOnly:
+	switch p.Pattern {
+	case PatternSrcOnly:
 		return p.src.ExecContext(ctx, query, args...)
-	case patternSrcFirst:
+	case PatternSrcFirst:
 		res, err := p.src.ExecContext(ctx, query, args...)
 		if err != nil {
 			return res, err
@@ -289,9 +289,9 @@ func (p *DoubleWritePoolTx) ExecContext(ctx context.Context, query string, args 
 			// dst 写失败，不被认为是失败
 		}
 		return res, err
-	case patternDstOnly:
+	case PatternDstOnly:
 		return p.dst.ExecContext(ctx, query, args...)
-	case patternDstFirst:
+	case PatternDstFirst:
 		res, err := p.dst.ExecContext(ctx, query, args...)
 		if err != nil {
 			return res, err
@@ -312,10 +312,10 @@ func (p *DoubleWritePoolTx) ExecContext(ctx context.Context, query string, args 
 }
 
 func (p *DoubleWritePoolTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	switch p.pattern {
-	case patternSrcOnly, patternSrcFirst:
+	switch p.Pattern {
+	case PatternSrcOnly, PatternSrcFirst:
 		return p.src.QueryContext(ctx, query, args...)
-	case patternDstOnly, patternDstFirst:
+	case PatternDstOnly, PatternDstFirst:
 		return p.dst.QueryContext(ctx, query, args...)
 	default:
 		// panic("未知的双写模式")
@@ -324,10 +324,10 @@ func (p *DoubleWritePoolTx) QueryContext(ctx context.Context, query string, args
 }
 
 func (p *DoubleWritePoolTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	switch p.pattern {
-	case patternSrcOnly, patternSrcFirst:
+	switch p.Pattern {
+	case PatternSrcOnly, PatternSrcFirst:
 		return p.src.QueryRowContext(ctx, query, args...)
-	case patternDstOnly, patternDstFirst:
+	case PatternDstOnly, PatternDstFirst:
 		return p.dst.QueryRowContext(ctx, query, args...)
 	default:
 		panic("未知的双写模式")
