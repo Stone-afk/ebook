@@ -9,6 +9,49 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+type OverrideFixer[T migrator.Entity] struct {
+	// 因为本身其实这个不涉及什么领域对象，
+	// 这里操作的不是 migrator 本身的领域对象
+	base    *gorm.DB
+	target  *gorm.DB
+	columns []string
+}
+
+func NewOverrideFixer[T migrator.Entity](base *gorm.DB,
+	target *gorm.DB) (*OverrideFixer[T], error) {
+	// 在这里需要查询一下数据库中究竟有哪些列
+	var t T
+	rows, err := base.Model(&t).Limit(1).Rows()
+	if err != nil {
+		return nil, err
+	}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	return &OverrideFixer[T]{
+		base:    base,
+		target:  target,
+		columns: columns,
+	}, nil
+}
+
+func (f *OverrideFixer[T]) Fix(ctx context.Context, id int64) error {
+	var src T
+	err := f.base.WithContext(ctx).Where("id = ?", id).First(&src).Error
+	switch err {
+	case nil:
+		return f.target.WithContext(ctx).Clauses(&clause.OnConflict{
+			// 需要 Entity 告诉我们，修复哪些数据
+			DoUpdates: clause.AssignmentColumns(f.columns),
+		}).Create(&src).Error
+	case gorm.ErrRecordNotFound:
+		return f.target.WithContext(ctx).Delete("id = ?", id).Error
+	default:
+		return err
+	}
+}
+
 type Fixer[T migrator.Entity] struct {
 	base    *gorm.DB
 	target  *gorm.DB
@@ -36,7 +79,7 @@ func (f *Fixer[T]) Fix(ctx context.Context, evt events.InconsistentEvent) error 
 	case gorm.ErrRecordNotFound:
 		// base 没了
 		return f.target.WithContext(ctx).
-			Where("id=?", evt.ID).Delete(&t).Error
+			Where("id = ?", evt.ID).Delete(&t).Error
 	default:
 		return err
 	}
