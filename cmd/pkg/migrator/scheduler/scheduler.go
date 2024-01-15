@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"ebook/cmd/pkg/ginx"
 	"ebook/cmd/pkg/gormx/connpool"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
@@ -27,7 +28,7 @@ func NewScheduler[T migrator.Entity](
 	l logger.Logger,
 	src *gorm.DB,
 	dst *gorm.DB,
-	// 这个是业务用的 DoubleWritePool
+// 这个是业务用的 DoubleWritePool
 	pool *connpool.DoubleWritePool,
 	producer events.Producer) *Scheduler[T] {
 	return &Scheduler[T]{
@@ -47,6 +48,47 @@ func (s *Scheduler[T]) RegisterRoutes(server *gin.RouterGroup) {
 }
 
 // ---- 下面是四个阶段 ---- //
+
+// SrcOnly 只读写源表
+func (s *Scheduler[T]) SrcOnly(c *gin.Context) (ginx.Result[any], error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.pattern = connpool.PatternSrcOnly
+	s.pool.UpdatePattern(s.pattern)
+	return ginx.Result[any]{
+		Msg: "ok",
+	}, nil
+}
+
+func (s *Scheduler[T]) SrcFirst(c *gin.Context) (ginx.Result[any], error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.pattern = connpool.PatternSrcFirst
+	s.pool.UpdatePattern(s.pattern)
+	return ginx.Result[any]{
+		Msg: "ok",
+	}, nil
+}
+
+func (s *Scheduler[T]) DstFirst(c *gin.Context) (ginx.Result[any], error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.pattern = connpool.PatternDstFirst
+	s.pool.UpdatePattern(s.pattern)
+	return ginx.Result[any]{
+		Msg: "ok",
+	}, nil
+}
+
+func (s *Scheduler[T]) DstOnly(c *gin.Context) (ginx.Result[any], error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.pattern = connpool.PatternDstOnly
+	s.pool.UpdatePattern(s.pattern)
+	return ginx.Result[any]{
+		Msg: "ok",
+	}, nil
+}
 
 type StartIncrRequest struct {
 	Utime int64 `json:"utime"`
