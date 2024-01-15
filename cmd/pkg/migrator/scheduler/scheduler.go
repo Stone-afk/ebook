@@ -28,7 +28,7 @@ func NewScheduler[T migrator.Entity](
 	l logger.Logger,
 	src *gorm.DB,
 	dst *gorm.DB,
-// 这个是业务用的 DoubleWritePool
+	// 这个是业务用的 DoubleWritePool
 	pool *connpool.DoubleWritePool,
 	producer events.Producer) *Scheduler[T] {
 	return &Scheduler[T]{
