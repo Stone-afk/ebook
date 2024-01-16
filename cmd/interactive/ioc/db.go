@@ -3,6 +3,7 @@ package ioc
 import (
 	"ebook/cmd/interactive/repository/dao"
 	prometheus2 "ebook/cmd/pkg/gormx/callbacks/prometheus"
+	"ebook/cmd/pkg/gormx/connpool"
 	"ebook/cmd/pkg/logger"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -13,10 +14,36 @@ import (
 	"time"
 )
 
-func InitDB() *gorm.DB {
+type SrcDB *gorm.DB
+type DstDB *gorm.DB
+
+func InitSRC(l logger.Logger) SrcDB {
+	return InitDB(l, "src")
+}
+
+func InitDST(l logger.Logger) DstDB {
+	return InitDB(l, "dst")
+}
+
+func InitDoubleWritePool(src SrcDB, dst DstDB) *connpool.DoubleWritePool {
+	pattern := viper.GetString("migrator.pattern")
+	return connpool.NewDoubleWritePool(src.ConnPool, dst.ConnPool, pattern)
+}
+
+// InitBizDB 这个是业务用的，支持双写的 DB
+func InitBizDB(pool *connpool.DoubleWritePool) *gorm.DB {
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: pool,
+	}))
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func InitDB(l logger.Logger, key string) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
-
 		// 有些人的做法
 		// localhost:13316
 		//Addr string
@@ -36,7 +63,7 @@ func InitDB() *gorm.DB {
 		DSN: "root:root@tcp(localhost:13316)/webook_default",
 	}
 	// 看起来，remote 不支持 key 的切割
-	err := viper.UnmarshalKey("db", &cfg)
+	err := viper.UnmarshalKey("db."+key, &cfg)
 	//dsn := viper.GetString("db.mysql")
 	//println(dsn)
 	//if err != nil {

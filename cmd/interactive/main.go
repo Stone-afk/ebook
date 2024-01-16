@@ -5,7 +5,27 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"log"
 )
+
+func main() {
+	initViperWatch()
+	// 这里暂时随便搞一下
+	// 搞成依赖注入
+	app := Init()
+	for _, c := range app.consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	go func() {
+		err := app.webAdmin.Start()
+		log.Println(err)
+	}()
+	err := app.server.Serve()
+	log.Println(err)
+}
 
 func initViperWatch() {
 	cfile := pflag.String("config",
