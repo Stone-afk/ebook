@@ -8,6 +8,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -26,8 +27,33 @@ func InitEtcd() *etcdv3.Client {
 }
 
 // InitInteractiveGRPCClient 真正的 gRPC 的客户端
-func InitInteractiveGRPCClient(svc service.InteractiveService, l logger.Logger) intrv1.InteractiveServiceClient {
-	panic("")
+func InitInteractiveGRPCClient(client *etcdv3.Client) intrv1.InteractiveServiceClient {
+	type Config struct {
+		Secure bool
+		Name   string
+	}
+	var cfg Config
+	err := viper.UnmarshalKey("grpc.client.intr", &cfg)
+	if err != nil {
+		panic(err)
+	}
+	bd, err := resolver.NewBuilder(client)
+	if err != nil {
+		panic(err)
+	}
+	opts := []grpc.DialOption{grpc.WithResolvers(bd)}
+	if cfg.Secure {
+		// 上面，要去加载你的证书之类的东西
+		// 启用 HTTPS
+	} else {
+		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	}
+	// 这个地方没填对，它也不会报错
+	cc, err := grpc.Dial("etcd:///service/"+cfg.Name, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return intrv1.NewInteractiveServiceClient(cc)
 }
 
 // InitInteractiveGRPCClientV2 这个是流量控制的客户端
