@@ -3,19 +3,19 @@ package ioc
 import (
 	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
 	"github.com/spf13/viper"
-	etcdv3 "go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func InitEtcd() *etcdv3.Client {
-	var cfg etcdv3.Config
+func InitEtcd() *clientv3.Client {
+	var cfg clientv3.Config
 	err := viper.UnmarshalKey("etcd", &cfg)
 	if err != nil {
 		panic(err)
 	}
-	cli, err := etcdv3.New(cfg)
+	cli, err := clientv3.New(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -23,7 +23,7 @@ func InitEtcd() *etcdv3.Client {
 }
 
 // InitInteractiveGRPCClient 真正的 gRPC 的客户端
-func InitInteractiveGRPCClient(client *etcdv3.Client) intrv1.InteractiveServiceClient {
+func InitInteractiveGRPCClient(client *clientv3.Client) intrv1.InteractiveServiceClient {
 	type Config struct {
 		Secure bool
 		Name   string
