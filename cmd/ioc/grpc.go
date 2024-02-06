@@ -2,10 +2,6 @@ package ioc
 
 import (
 	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
-	"ebook/cmd/interactive/service"
-	"ebook/cmd/internal/handler/client/interactive"
-	"ebook/cmd/pkg/logger"
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/resolver"
@@ -37,6 +33,7 @@ func InitInteractiveGRPCClient(client *etcdv3.Client) intrv1.InteractiveServiceC
 	if err != nil {
 		panic(err)
 	}
+	// build 注册中心
 	bd, err := resolver.NewBuilder(client)
 	if err != nil {
 		panic(err)
@@ -48,6 +45,7 @@ func InitInteractiveGRPCClient(client *etcdv3.Client) intrv1.InteractiveServiceC
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+	// 连接注册中心
 	// 这个地方没填对，它也不会报错
 	cc, err := grpc.Dial("etcd:///service/"+cfg.Name, opts...)
 	if err != nil {
@@ -56,42 +54,42 @@ func InitInteractiveGRPCClient(client *etcdv3.Client) intrv1.InteractiveServiceC
 	return intrv1.NewInteractiveServiceClient(cc)
 }
 
-// InitInteractiveGRPCClientV2 这个是流量控制的客户端
-func InitInteractiveGRPCClientV2(svc service.InteractiveService, l logger.Logger) intrv1.InteractiveServiceClient {
-	type Config struct {
-		Addr      string
-		Secure    bool
-		Threshold int32
-	}
-	var cfg Config
-	err := viper.UnmarshalKey("grpc.client.intr", &cfg)
-	if err != nil {
-		panic(err)
-	}
-	var opts []grpc.DialOption
-	if cfg.Secure {
-		// 上面，要去加载证书之类的东西
-		// 启用 HTTPS
-	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	}
-	cc, err := grpc.Dial(cfg.Addr, opts...)
-	if err != nil {
-		panic(err)
-	}
-	remoteClient := intrv1.NewInteractiveServiceClient(cc)
-	localClient := interactive.NewServiceAdapter(svc)
-	res := interactive.NewGreyScaleServiceClient(remoteClient, localClient, cfg.Threshold)
-	// 在这里监听
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		cfg = Config{}
-		err1 := viper.UnmarshalKey("grpc.intr", cfg)
-		if err1 != nil {
-			l.Error("重新加载grpc.intr的配置失败", logger.Error(err1))
-			return
-		}
-		// 这边更新 Threshold
-		res.UpdateThreshold(cfg.Threshold)
-	})
-	return res
-}
+//// InitInteractiveThresholdGRPCClient 这个是流量控制的客户端
+//func InitInteractiveThresholdGRPCClient(svc service.InteractiveService, l logger.Logger) intrv1.InteractiveServiceClient {
+//	type Config struct {
+//		Addr      string
+//		Secure    bool
+//		Threshold int32
+//	}
+//	var cfg Config
+//	err := viper.UnmarshalKey("grpc.client.intr", &cfg)
+//	if err != nil {
+//		panic(err)
+//	}
+//	var opts []grpc.DialOption
+//	if cfg.Secure {
+//		// 上面，要去加载证书之类的东西
+//		// 启用 HTTPS
+//	} else {
+//		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+//	}
+//	cc, err := grpc.Dial(cfg.Addr, opts...)
+//	if err != nil {
+//		panic(err)
+//	}
+//	remoteClient := intrv1.NewInteractiveServiceClient(cc)
+//	localClient := interactive.NewServiceAdapter(svc)
+//	res := interactive.NewGreyScaleServiceClient(remoteClient, localClient, cfg.Threshold)
+//	// 在这里监听
+//	viper.OnConfigChange(func(in fsnotify.Event) {
+//		cfg = Config{}
+//		err1 := viper.UnmarshalKey("grpc.intr", cfg)
+//		if err1 != nil {
+//			l.Error("重新加载grpc.intr的配置失败", logger.Error(err1))
+//			return
+//		}
+//		// 这边更新 Threshold
+//		res.UpdateThreshold(cfg.Threshold)
+//	})
+//	return res
+//}

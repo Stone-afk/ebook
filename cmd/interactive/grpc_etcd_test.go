@@ -30,8 +30,10 @@ func (s *EtcdTestSuite) SetupSuite() {
 }
 
 func (s *EtcdTestSuite) TestClient() {
+	// build 注册中心
 	bd, err := resolver.NewBuilder(s.client)
 	require.NoError(s.T(), err)
+	// 连接注册中心
 	cc, err := grpc.Dial("etcd:///service/interactive", grpc.WithResolvers(bd),
 		//grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		//	ctx = context.WithValue(ctx, "req", req)

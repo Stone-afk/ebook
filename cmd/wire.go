@@ -87,11 +87,17 @@ func InitApp() *App {
 		events.NewKafkaProducer,
 
 		rankServiceProvider,
-		interactiveServiceProvider,
 		articleServiceProvider,
 		userServiceProvider,
 		codeServiceProvider,
 		wechatServiceProvider,
+
+		// 流量控制用的
+		//interactiveServiceProvider,
+		//ioc.InitInteractiveThresholdGRPCClient,
+
+		// 放一起，启用了 etcd 作为配置中心
+		ioc.InitEtcd,
 		ioc.InitInteractiveGRPCClient,
 
 		handler.NewOAuth2WechatHandler,
