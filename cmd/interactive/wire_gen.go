@@ -32,7 +32,7 @@ func Init() *App {
 	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
-	server := ioc.InitGRPCxServer(interactiveServiceServer)
+	server := ioc.InitGRPCxServer(logger, interactiveServiceServer)
 	client := ioc.InitKafka()
 	syncProducer := ioc.InitSyncProducer(client)
 	producer := ioc.InitMigradatorProducer(syncProducer)
