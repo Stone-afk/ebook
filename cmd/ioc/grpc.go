@@ -7,11 +7,31 @@ import (
 	"ebook/cmd/pkg/logger"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+func InitEtcd() *etcdv3.Client {
+	var cfg etcdv3.Config
+	err := viper.UnmarshalKey("etcd", &cfg)
+	if err != nil {
+		panic(err)
+	}
+	cli, err := etcdv3.New(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return cli
+}
+
+// InitInteractiveGRPCClient 真正的 gRPC 的客户端
 func InitInteractiveGRPCClient(svc service.InteractiveService, l logger.Logger) intrv1.InteractiveServiceClient {
+	panic("")
+}
+
+// InitInteractiveGRPCClientV2 这个是流量控制的客户端
+func InitInteractiveGRPCClientV2(svc service.InteractiveService, l logger.Logger) intrv1.InteractiveServiceClient {
 	type Config struct {
 		Addr      string
 		Secure    bool

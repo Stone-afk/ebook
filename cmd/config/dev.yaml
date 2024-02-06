@@ -13,6 +13,17 @@ kafka:
 grpc:
   client:
     intr:
-      addr: "localhost:8090"
+      name: "interactive"
       secure: false
-      threshold: 100
+
+# 这个是流量控制的 client 的配置
+#grpc:
+#  client:
+#    intr:
+#      addr: "localhost:8090"
+#      secure: false
+#      threshold: 100
+
+etcd:
+  endpoints:
+    - "localhost:12379"

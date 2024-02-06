@@ -31,6 +31,11 @@ func (s *Server) Serve() error {
 	if err != nil {
 		return err
 	}
+	err = s.register()
+	if err != nil {
+		return err
+	}
+	// 就是直接启动，现在要嵌入服务注册过程
 	// 这边会阻塞，类似与 gin.Run
 	return s.Server.Serve(l)
 }
