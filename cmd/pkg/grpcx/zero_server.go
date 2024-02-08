@@ -37,3 +37,9 @@ func (s *ZeroServer) Serve() error {
 	s.server.Start()
 	return nil
 }
+
+// Close 你可以叫做 Shutdown
+func (s *ZeroServer) Close() error {
+	s.server.Stop()
+	return nil
+}
