@@ -3,6 +3,8 @@ package ioc
 import (
 	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
 	"github.com/spf13/viper"
+	"github.com/zeromicro/go-zero/core/discov"
+	"github.com/zeromicro/go-zero/zrpc"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
@@ -51,6 +53,27 @@ func InitInteractiveGRPCClient(client *clientv3.Client) intrv1.InteractiveServic
 	if err != nil {
 		panic(err)
 	}
+	return intrv1.NewInteractiveServiceClient(cc)
+}
+
+// InitInteractiveZeroClient 真正的 gRPC 的客户端
+func InitInteractiveZeroClient(client *clientv3.Client) intrv1.InteractiveServiceClient {
+	type Config struct {
+		EtcdAddrs []string `yaml:"etcdAddrs"`
+	}
+	var cfg Config
+	err := viper.UnmarshalKey("grpc.server", &cfg)
+	if err != nil {
+		panic(err)
+	}
+	c := zrpc.RpcClientConf{
+		Etcd: discov.EtcdConf{
+			Hosts: cfg.EtcdAddrs,
+			Key:   "interactive",
+		},
+	}
+	zClient := zrpc.MustNewClient(c)
+	cc := zClient.Conn()
 	return intrv1.NewInteractiveServiceClient(cc)
 }
 
