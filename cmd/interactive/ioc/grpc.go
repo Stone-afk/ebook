@@ -21,7 +21,7 @@ func InitGRPCxServer(l logger.Logger, intrServer *grpc2.InteractiveServiceServer
 		panic(err)
 	}
 	server := grpc.NewServer()
-	intrServer.Register(server)
+	intrServer.Registry(server)
 
 	return &grpcx.Server{
 		Server:    server,
@@ -29,5 +29,26 @@ func InitGRPCxServer(l logger.Logger, intrServer *grpc2.InteractiveServiceServer
 		EtcdAddrs: cfg.EtcdAddrs,
 		Name:      "interactive",
 		L:         l,
+	}
+}
+
+func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.ZeroServer {
+	type Config struct {
+		Port      int      `yaml:"port"`
+		EtcdAddrs []string `yaml:"etcdAddrs"`
+	}
+	var cfg Config
+	err := viper.UnmarshalKey("grpc.server", &cfg)
+	// master 分支
+	//err := viper.UnmarshalKey("grpc", &cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	return &grpcx.ZeroServer{
+		Port:      cfg.Port,
+		EtcdAddrs: cfg.EtcdAddrs,
+		Name:      "interactive",
+		Register:  intrServer,
 	}
 }

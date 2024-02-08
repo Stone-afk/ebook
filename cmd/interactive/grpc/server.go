@@ -20,7 +20,7 @@ func NewInteractiveServiceServer(svc service.InteractiveService) *InteractiveSer
 	return &InteractiveServiceServer{svc: svc}
 }
 
-func (s *InteractiveServiceServer) Register(server *grpc.Server) {
+func (s *InteractiveServiceServer) Registry(server *grpc.Server) {
 	intrv1.RegisterInteractiveServiceServer(server, s)
 }
 
