@@ -1,7 +1,10 @@
 package ioc
 
 import (
+	"context"
 	intrv1 "ebook/cmd/api/proto/gen/intr/v1"
+	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
+	kGrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/spf13/viper"
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -56,24 +59,44 @@ func InitInteractiveGRPCClient(client *clientv3.Client) intrv1.InteractiveServic
 	return intrv1.NewInteractiveServiceClient(cc)
 }
 
-// InitInteractiveZeroClient 真正的 gRPC 的客户端
+// InitInteractiveZeroClient go zero 的客户端
 func InitInteractiveZeroClient(client *clientv3.Client) intrv1.InteractiveServiceClient {
 	type Config struct {
-		EtcdAddrs []string `yaml:"etcdAddrs"`
+		endpoints []string `yaml:"endpoints"`
 	}
 	var cfg Config
-	err := viper.UnmarshalKey("grpc.server", &cfg)
+	err := viper.UnmarshalKey("etcd", &cfg)
 	if err != nil {
 		panic(err)
 	}
 	c := zrpc.RpcClientConf{
 		Etcd: discov.EtcdConf{
-			Hosts: cfg.EtcdAddrs,
+			Hosts: cfg.endpoints,
 			Key:   "interactive",
 		},
 	}
 	zClient := zrpc.MustNewClient(c)
 	cc := zClient.Conn()
+	return intrv1.NewInteractiveServiceClient(cc)
+}
+
+// InitInteractiveKratosClient kratos 的客户端
+func InitInteractiveKratosClient(client *clientv3.Client) intrv1.InteractiveServiceClient {
+	type Config struct {
+		endpoints []string `yaml:"endpoints"`
+	}
+	var cfg Config
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints: cfg.endpoints,
+	})
+	if err != nil {
+		panic(err)
+	}
+	r := etcd.New(cli)
+	cc, err := kGrpc.DialInsecure(context.Background(),
+		kGrpc.WithEndpoint("discovery:///interactive"),
+		kGrpc.WithDiscovery(r),
+	)
 	return intrv1.NewInteractiveServiceClient(cc)
 }
 

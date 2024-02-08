@@ -52,3 +52,24 @@ func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.ZeroServe
 		Register:  intrServer,
 	}
 }
+
+func InitKratosServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.KratosServer {
+	type Config struct {
+		Port      int      `yaml:"port"`
+		EtcdAddrs []string `yaml:"etcdAddrs"`
+	}
+	var cfg Config
+	err := viper.UnmarshalKey("grpc.server", &cfg)
+	// master 分支
+	//err := viper.UnmarshalKey("grpc", &cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	return &grpcx.KratosServer{
+		Port:      cfg.Port,
+		EtcdAddrs: cfg.EtcdAddrs,
+		Name:      "interactive",
+		Register:  intrServer,
+	}
+}
