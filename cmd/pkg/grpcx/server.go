@@ -15,9 +15,9 @@ import (
 type Server struct {
 	*grpc.Server
 	//Addr string
-	L      logger.Logger
-	em     endpoints.Manager
-	client *etcdv3.Client
+	L          logger.Logger
+	em         endpoints.Manager
+	etcdClient *etcdv3.Client
 
 	key       string
 	Port      int
@@ -47,7 +47,7 @@ func (s *Server) register() error {
 	if err != nil {
 		return err
 	}
-	s.client = client
+	s.etcdClient = client
 	// endpoint 以服务为维度。一个服务一个 Manager
 	em, err := endpoints.NewManager(client, "service/"+s.Name)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Server) register() error {
 
 	kaCtx, kaCancel := context.WithCancel(context.Background())
 	s.kaCancel = kaCancel
-	ch, err := s.client.KeepAlive(kaCtx, leaseResp.ID)
+	ch, err := s.etcdClient.KeepAlive(kaCtx, leaseResp.ID)
 	go func() {
 		for kaResp := range ch {
 			// 正常就是打印一下 DEBUG 日志啥的
@@ -93,8 +93,8 @@ func (s *Server) Close() error {
 			return err
 		}
 	}
-	if s.client != nil {
-		err := s.client.Close()
+	if s.etcdClient != nil {
+		err := s.etcdClient.Close()
 		if err != nil {
 			return err
 		}
