@@ -1,6 +1,7 @@
-package grpcx
+package server
 
 import (
+	"ebook/cmd/pkg/grpcx"
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -8,7 +9,7 @@ import (
 )
 
 type ZeroServer struct {
-	Register
+	grpcx.Register
 	Port      int
 	EtcdAddrs []string
 	Name      string

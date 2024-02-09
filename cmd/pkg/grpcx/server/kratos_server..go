@@ -1,6 +1,7 @@
-package grpcx
+package server
 
 import (
+	"ebook/cmd/pkg/grpcx"
 	etcd "github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
@@ -10,7 +11,7 @@ import (
 )
 
 type KratosServer struct {
-	Register
+	grpcx.Register
 	Port       int
 	EtcdAddrs  []string
 	Name       string
