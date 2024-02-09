@@ -6,18 +6,21 @@ import (
 	"sync"
 )
 
-const name = "custom_wrr"
+const name = "custom_weighted_round_robin"
 
 // balancer.Balancer 接口
 // balancer.Builder 接口
 // balancer.Picker 接口
 // base.PickerBuilder 接口
-// 你可以认为，Balancer 是 Picker 的装饰器
+// 可以认为，Balancer 是 Picker 的装饰器
 func init() {
-
+	// NewBalancerBuilder 是帮我们把一个 Picker Builder 转化为一个 balancer.Builder
+	balancer.Register(newBuilder())
 }
 
-// 传统版本的基于权重的负载均衡算法
+func newBuilder() balancer.Builder {
+	return base.NewBalancerBuilder(name, &PickerBuilder{}, base.Config{HealthCheck: true})
+}
 
 type PickerBuilder struct{}
 
