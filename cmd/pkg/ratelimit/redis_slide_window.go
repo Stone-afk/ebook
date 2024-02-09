@@ -31,5 +31,5 @@ func NewRedisSlidingWindowLimiter(cmd redis.Cmdable, interval time.Duration, rat
 
 func (r *RedisSlidingWindowLimiter) Limit(ctx context.Context, key string) (bool, error) {
 	return r.cmd.Eval(ctx, luaSlideWindow, []string{key},
-		r.interval.Microseconds(), time.Now().UnixMilli()).Bool()
+		r.interval.Microseconds(), r.rate, time.Now().UnixMilli()).Bool()
 }
