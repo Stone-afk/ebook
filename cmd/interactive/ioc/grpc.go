@@ -2,13 +2,13 @@ package ioc
 
 import (
 	grpc2 "ebook/cmd/interactive/grpc"
-	"ebook/cmd/pkg/grpcx"
+	"ebook/cmd/pkg/grpcx/server"
 	"ebook/cmd/pkg/logger"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
-func InitGRPCxServer(l logger.Logger, intrServer *grpc2.InteractiveServiceServer) *grpcx.Server {
+func InitGRPCxServer(l logger.Logger, intrServer *grpc2.InteractiveServiceServer) *server.Server {
 	type Config struct {
 		Port      int      `yaml:"port"`
 		EtcdAddrs []string `yaml:"etcdAddrs"`
@@ -20,11 +20,11 @@ func InitGRPCxServer(l logger.Logger, intrServer *grpc2.InteractiveServiceServer
 	if err != nil {
 		panic(err)
 	}
-	server := grpc.NewServer()
-	intrServer.Registry(server)
+	grpcSvc := grpc.NewServer()
+	intrServer.Registry(grpcSvc)
 
-	return &grpcx.Server{
-		Server:    server,
+	return &server.Server{
+		Server:    grpcSvc,
 		Port:      cfg.Port,
 		EtcdAddrs: cfg.EtcdAddrs,
 		Name:      "interactive",
@@ -32,7 +32,7 @@ func InitGRPCxServer(l logger.Logger, intrServer *grpc2.InteractiveServiceServer
 	}
 }
 
-func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.ZeroServer {
+func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *server.ZeroServer {
 	type Config struct {
 		Port      int      `yaml:"port"`
 		EtcdAddrs []string `yaml:"etcdAddrs"`
@@ -45,7 +45,7 @@ func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.ZeroServe
 		panic(err)
 	}
 
-	return &grpcx.ZeroServer{
+	return &server.ZeroServer{
 		Port:      cfg.Port,
 		EtcdAddrs: cfg.EtcdAddrs,
 		Name:      "interactive",
@@ -53,7 +53,7 @@ func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.ZeroServe
 	}
 }
 
-func InitKratosServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.KratosServer {
+func InitKratosServer(intrServer *grpc2.InteractiveServiceServer) *server.KratosServer {
 	type Config struct {
 		Port      int      `yaml:"port"`
 		EtcdAddrs []string `yaml:"etcdAddrs"`
@@ -66,7 +66,7 @@ func InitKratosServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.KratosS
 		panic(err)
 	}
 
-	return &grpcx.KratosServer{
+	return &server.KratosServer{
 		Port:      cfg.Port,
 		EtcdAddrs: cfg.EtcdAddrs,
 		Name:      "interactive",
