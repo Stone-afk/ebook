@@ -23,6 +23,27 @@ type PickerBuilder struct{}
 
 func (p *PickerBuilder) Build(info base.PickerBuildInfo) balancer.Picker {
 	conns := make([]*conn, 0, len(info.ReadySCs))
+	// sc => SubConn
+	// sci => SubConnInfo
+	for sc, sci := range info.ReadySCs {
+		cc := &conn{cc: sc}
+		md, ok := sci.Address.Metadata.(map[string]any)
+		if ok {
+			weightVal := md["weight"]
+			weight, _ := weightVal.(float64)
+			cc.weight = int(weight)
+			//group, _ := md["group"]
+			//cc.group =group
+			cc.labels = md["labels"].([]string)
+		}
+
+		if cc.weight == 0 {
+			// 可以给个默认值
+			cc.weight = 10
+		}
+		cc.currentWeight = cc.weight
+		conns = append(conns, cc)
+	}
 	return &Picker{
 		conns: conns,
 	}
