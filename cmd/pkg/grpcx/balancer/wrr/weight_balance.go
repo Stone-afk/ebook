@@ -90,6 +90,7 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	// maxCC 就是挑出来的
 	return balancer.PickResult{
 		SubConn: maxCC.cc,
+		Done:    func(info balancer.DoneInfo) {},
 	}, nil
 
 }
