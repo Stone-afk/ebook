@@ -1,8 +1,11 @@
 package wrr
 
 import (
+	"context"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
+	"google.golang.org/grpc/status"
+	"io"
 	"sync"
 )
 
@@ -90,7 +93,34 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	// maxCC 就是挑出来的
 	return balancer.PickResult{
 		SubConn: maxCC.cc,
-		Done:    func(info balancer.DoneInfo) {},
+		Done: func(info balancer.DoneInfo) {
+			err := info.Err
+			if err == nil {
+				// 你可以考虑增加权重 weight/currentWeight
+				return
+			}
+			switch err {
+			// 一般是主动取消，没必要去调
+			case context.Canceled:
+				return
+			case context.DeadlineExceeded:
+				// 重试，或者做 负载 检测
+			case io.EOF, io.ErrUnexpectedEOF:
+				// 基本可以认为这个节点已经崩了
+				maxCC.available = false
+			// 可以考虑降低权重
+			default:
+				st, ok := status.FromError(err)
+				if ok {
+					code := st.Code()
+					switch code {
+
+					}
+				}
+
+			}
+
+		},
 	}, nil
 
 }
