@@ -116,6 +116,23 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 					code := st.Code()
 					switch code {
 					case codes.Unavailable:
+						// 这里可能表达的是熔断
+						// 这里就要考虑挪走该节点，这个节点已经不可用了
+						// 注意并发，这里可以用原子操作
+						maxCC.available = false
+						go func() {
+							// 要开一个额外的 goroutine 去探活
+							// 借助 health check
+							// for 循环
+							if p.healthCheck(maxCC) {
+								// 放回来
+								maxCC.available = true
+								// 最好加点流量控制的措施
+								// maxCC.currentWeight
+								// 要求下一次选中 maxCC 的时候
+								// 掷骰子
+							}
+						}()
 					case codes.ResourceExhausted:
 						// 这里可能表达的是限流
 						// 可以挪走
