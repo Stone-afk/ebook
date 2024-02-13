@@ -4,6 +4,7 @@ import (
 	"context"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
 	"sync"
@@ -114,12 +115,17 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 				if ok {
 					code := st.Code()
 					switch code {
-
+					case codes.Unavailable:
+					case codes.ResourceExhausted:
+						// 这里可能表达的是限流
+						// 可以挪走
+						// 也可以留着，留着的话，你就要降低权重，
+						// 最好是 currentWeight 和 weight 都调低
+						// 减少它被选中的概率
+						// 加一个错误码表达降级
 					}
 				}
-
 			}
-
 		},
 	}, nil
 
