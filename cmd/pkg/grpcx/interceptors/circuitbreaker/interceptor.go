@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-kratos/aegis/circuitbreaker"
 	"google.golang.org/grpc"
+	"math/rand"
 )
 
 type InterceptorBuilder struct {
@@ -37,6 +38,31 @@ func (b *InterceptorBuilder) BuildServerInterceptor() grpc.UnaryServerIntercepto
 		// 触发了熔断器
 		b.breaker.MarkFailed()
 		return nil, err
+	}
+}
+
+func (b *InterceptorBuilder) BuildServerInterceptorV1() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any,
+		info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		if !b.allow() {
+			b.threshold = b.threshold / 2
+			// 这里就是触发了熔断
+			//b.threshold = 0
+			//time.AfterFunc(time.Minute, func() {
+			//	b.threshold = 1
+			//})
+		}
+		// 下面就是随机数判定
+		cnt := rand.Intn(100)
+		if cnt <= b.threshold {
+			resp, err = handler(ctx, req)
+			if err == nil && b.threshold != 0 {
+				// 你要考虑调大 threshold
+			} else if b.threshold != 0 {
+				// 你要考虑调小 threshold
+			}
+		}
+		return
 	}
 }
 
