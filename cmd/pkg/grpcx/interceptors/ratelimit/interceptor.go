@@ -1,0 +1,51 @@
+package ratelimit
+
+import (
+	"context"
+	"ebook/cmd/pkg/logger"
+	"ebook/cmd/pkg/ratelimit"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+type InterceptorBuilder struct {
+	key     string
+	limiter ratelimit.Limiter
+	l       logger.Logger
+
+	// key 是 FullMethod, value 是默认值的 json
+	//defaultValueMap map[string]string
+	//defaultValueFuncMap map[string]func() any
+}
+
+// NewInterceptorBuilder key: user-service
+// "limiter:service:user" 整个应用、集群限流
+// "limiter:service:user:UserService" user 里面的 UserService 限流
+func NewInterceptorBuilder(limiter ratelimit.Limiter, key string, l logger.Logger) *InterceptorBuilder {
+	return &InterceptorBuilder{limiter: limiter, key: key, l: l}
+}
+
+func (b *InterceptorBuilder) BuildServerInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any,
+		info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		limited, err := b.limiter.Limit(ctx, b.key)
+		if err != nil {
+			// err 不为nil，你要考虑你用保守的，还是用激进的策略
+			// 这是保守的策略
+			b.l.Error("判定限流出现问题", logger.Error(err))
+			return nil, status.Errorf(codes.ResourceExhausted, "触发限流")
+			// 这是激进的策略
+			// return handler(ctx, req)
+		}
+		if limited {
+			//defVal, ok := b.defaultValueMap[info.FullMethod]
+			//if ok {
+			//	err = json.Unmarshal([]byte(defVal), &resp)
+			//	return defVal, err
+			//}
+			return nil, status.Errorf(codes.ResourceExhausted, "触发限流")
+		}
+		return handler(ctx, req)
+	}
+}
