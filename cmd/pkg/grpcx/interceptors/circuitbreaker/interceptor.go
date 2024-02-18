@@ -17,7 +17,26 @@ type InterceptorBuilder struct {
 
 func (b *InterceptorBuilder) BuildServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		panic("")
+		if b.breaker.Allow() == nil {
+			resp, err = handler(ctx, req)
+			// 进一步区别是不是系统错
+			// 借助这个区判定是不是业务错误
+			//s, ok :=status.FromError(err)
+			//if s != nil && s.Code() == codes.Unavailable {
+			//	b.breaker.MarkFailed()
+			//} else {
+			//
+			//}
+			if err != nil {
+				// 这边没有区别业务错误和系统错误
+				b.breaker.MarkFailed()
+			} else {
+				b.breaker.MarkSuccess()
+			}
+		}
+		// 触发了熔断器
+		b.breaker.MarkFailed()
+		return nil, err
 	}
 }
 
