@@ -61,3 +61,23 @@ func (b *InterceptorBuilder) BuildServerInterceptorV1() grpc.UnaryServerIntercep
 		return handler(ctx, req)
 	}
 }
+
+func (b *InterceptorBuilder) BuildClientInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply any,
+		cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		limited, err := b.limiter.Limit(ctx, b.key)
+		if err != nil {
+			// err 不为nil，你要考虑你用保守的，还是用激进的策略
+			// 这是保守的策略
+			b.l.Error("判定限流出现问题", logger.Error(err))
+			return status.Errorf(codes.ResourceExhausted, "触发限流")
+
+			// 这是激进的策略
+			// return handler(ctx, req)
+		}
+		if limited {
+			return status.Errorf(codes.ResourceExhausted, "触发限流")
+		}
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
