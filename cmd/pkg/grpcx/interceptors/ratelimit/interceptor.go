@@ -49,3 +49,15 @@ func (b *InterceptorBuilder) BuildServerInterceptor() grpc.UnaryServerIntercepto
 		return handler(ctx, req)
 	}
 }
+
+// BuildServerInterceptorV1 用来配合后面业务的
+func (b *InterceptorBuilder) BuildServerInterceptorV1() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any,
+		info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		limited, err := b.limiter.Limit(ctx, b.key)
+		if err != nil || limited {
+			ctx = context.WithValue(ctx, "limited", "true")
+		}
+		return handler(ctx, req)
+	}
+}
