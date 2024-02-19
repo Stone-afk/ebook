@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"strings"
 )
 
 type InterceptorBuilder struct {
@@ -79,5 +80,27 @@ func (b *InterceptorBuilder) BuildClientInterceptor() grpc.UnaryClientIntercepto
 			return status.Errorf(codes.ResourceExhausted, "触发限流")
 		}
 		return invoker(ctx, method, req, reply, cc, opts...)
+	}
+}
+
+// BuildServerInterceptorService 服务级别限流
+func (b *InterceptorBuilder) BuildServerInterceptorService() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any,
+		info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		if strings.HasPrefix(info.FullMethod, "/UserService") {
+			limited, err := b.limiter.Limit(ctx, "limiter:service:user:UserService")
+			if err != nil {
+				// err 不为nil，你要考虑你用保守的，还是用激进的策略
+				// 这是保守的策略
+				b.l.Error("判定限流出现问题", logger.Error(err))
+				return nil, status.Errorf(codes.ResourceExhausted, "触发限流")
+				// 这是激进的策略
+				// return handler(ctx, req)
+			}
+			if limited {
+				return nil, status.Errorf(codes.ResourceExhausted, "触发限流")
+			}
+		}
+		return handler(ctx, req)
 	}
 }
