@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// FixedWindowLimiter 固定窗口算法
 type FixedWindowLimiter struct {
 	// 当前窗口的请求数量
 	cnt int
