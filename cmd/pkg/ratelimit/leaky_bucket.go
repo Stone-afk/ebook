@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 )
@@ -13,10 +14,19 @@ type LeakyBucket struct {
 
 	closeCh   chan struct{}
 	closeOnce sync.Once
+	ticker    *time.Ticker
 }
 
 func (l *LeakyBucket) Limit(ctx context.Context, key string) (bool, error) {
-	panic("")
+	select {
+	case <-l.ticker.C:
+		// 拿到了令牌
+		return false, nil
+	case <-ctx.Done():
+		return true, ctx.Err()
+	case <-l.closeCh:
+		return true, errors.New("限流器被关了")
+	}
 }
 
 func (l *LeakyBucket) Close() error {
