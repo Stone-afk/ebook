@@ -25,6 +25,29 @@ func NewTokenBucketLimiter(interval time.Duration, capacity int) *TokenBucketLim
 }
 
 func (l *TokenBucketLimiter) NewServerInterceptor() grpc.UnaryServerInterceptor {
+	ticker := time.NewTicker(l.interval)
+	go func() {
+		for {
+			select {
+			case <-l.closeCh:
+				return
+			case <-ticker.C:
+				select {
+				case l.buckets <- struct{}{}:
+				default:
+				}
+			}
+		}
+
+		//for _ = range ticker.C {
+		//	select {
+		//	case l.buckets <- struct{}{}:
+		//	// 发到了桶里面
+		//	default:
+		//		// 桶满了
+		//	}
+		//}
+	}()
 	return func(ctx context.Context, req any,
 		info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		panic("")
