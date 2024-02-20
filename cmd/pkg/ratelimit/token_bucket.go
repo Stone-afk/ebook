@@ -25,9 +25,40 @@ func NewTokenBucketLimiter(interval time.Duration, capacity int) *TokenBucketLim
 }
 
 func (l *TokenBucketLimiter) NewServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any,
-		info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		panic("")
+	ticker := time.NewTicker(l.interval)
+	go func() {
+		for {
+			select {
+			case <-l.closeCh:
+				return
+			case <-ticker.C:
+				select {
+				case l.buckets <- struct{}{}:
+				default:
+				}
+			}
+		}
+		//for _ = range ticker.C {
+		//	select {
+		//	case l.buckets <- struct{}{}:
+		//	// 发到了桶里面
+		//	default:
+		//		// 桶满了
+		//	}
+		//}
+	}()
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		select {
+		case <-l.buckets:
+			// 拿到了令牌
+			return handler(ctx, req)
+		case <-ctx.Done():
+			// 没有令牌就等令牌，直到超时
+			return nil, ctx.Err()
+			// default:
+			// 就意味着你认为，没有令牌不应阻塞，直接返回
+			//return nil, status.Errorf(codes.ResourceExhausted, "限流了")
+		}
 	}
 }
 
