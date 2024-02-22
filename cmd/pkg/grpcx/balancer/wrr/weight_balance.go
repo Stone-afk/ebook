@@ -166,4 +166,8 @@ type conn struct {
 	group string
 	//	真正的，grpc 里面的代表一个节点的表达
 	cc balancer.SubConn
+	ci base.SubConnInfo
+}
+
+type ii interface {
 }
