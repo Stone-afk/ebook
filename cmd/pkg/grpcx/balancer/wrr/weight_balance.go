@@ -33,12 +33,12 @@ func (p *PickerBuilder) Build(info base.PickerBuildInfo) balancer.Picker {
 	// sc => SubConn
 	// sci => SubConnInfo
 	for sc, sci := range info.ReadySCs {
-		cc := &conn{cc: sc}
+		cc := &conn{cc: sc, ci: sci}
 		md, ok := sci.Address.Metadata.(map[string]any)
 		if ok {
-			weightVal := md["weight"]
-			weight, _ := weightVal.(float64)
-			cc.weight = int(weight)
+			//weightVal := md["weight"]
+			//weight, _ := weightVal.(float64)
+			cc.weight = cc.GetByMetadata()
 			//group, _ := md["group"]
 			//cc.group =group
 			cc.labels = md["labels"].([]string)
@@ -153,6 +153,10 @@ func (p *Picker) healthCheck(cc *conn) bool {
 	return true
 }
 
+type WeightHandler interface {
+	GetByMetadata() int
+}
+
 // conn 代表节点
 type conn struct {
 	// （初始）权重
@@ -166,4 +170,15 @@ type conn struct {
 	group string
 	//	真正的，grpc 里面的代表一个节点的表达
 	cc balancer.SubConn
+	ci base.SubConnInfo
+}
+
+func (c *conn) GetByMetadata() int {
+	md, ok := c.ci.Address.Metadata.(map[string]any)
+	if !ok {
+		return 10
+	}
+	weightVal := md["weight"]
+	weight, _ := weightVal.(float64)
+	return int(weight)
 }
