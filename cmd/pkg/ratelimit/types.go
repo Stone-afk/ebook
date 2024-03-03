@@ -2,6 +2,7 @@ package ratelimit
 
 import "context"
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/pkg/ratelimit/types.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/pkg/ratelimit/mocks/ratelimit.mock.go
 type Limiter interface {
 	// Limit 有咩有触发限流。key 就是限流对象
 	// bool 代表是否限流，true 就是要限流
