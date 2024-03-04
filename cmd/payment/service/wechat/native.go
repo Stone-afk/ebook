@@ -1,12 +1,16 @@
 package wechat
 
 import (
+	"context"
 	"ebook/cmd/payment/domain"
 	"ebook/cmd/payment/events"
 	"ebook/cmd/payment/repository"
 	"ebook/cmd/pkg/logger"
 	"errors"
+	"github.com/wechatpay-apiv3/wechatpay-go/core"
+	"github.com/wechatpay-apiv3/wechatpay-go/services/payments"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
+	"time"
 )
 
 var errUnknownTransactionState = errors.New("未知的微信事务状态")
@@ -63,4 +67,93 @@ func NewNativePaymentService(svc *native.NativeApiService,
 			// 其它状态你都可以加
 		},
 	}
+}
+
+// Prepay 为了拿到扫码支付的二维码
+func (s *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (string, error) {
+	// 唯一索引冲突
+	// 业务方唤起了支付，但是没付，下一次再过来，应该换 BizTradeNO
+	err := s.repo.AddPayment(ctx, pmt)
+	if err != nil {
+		return "", err
+	}
+	//sn := uuid.New().String()
+	resp, result, err := s.svc.Prepay(ctx, native.PrepayRequest{
+		Appid:       core.String(s.appID),
+		Mchid:       core.String(s.mchID),
+		Description: core.String(pmt.Description),
+		// 这个地方是有讲究的
+		// 选择1：业务方直接给我，我透传，我啥也不干
+		// 选择2：业务方给我它的业务标识，我自己生成一个 - 担忧出现重复
+		// 注意，不管你是选择 1 还是选择 2，业务方都一定要传给你（webook payment）一个唯一标识
+		// Biz + BizTradeNo 唯一， biz + biz_id
+		OutTradeNo: core.String(pmt.BizTradeNO),
+		NotifyUrl:  core.String(s.notifyURL),
+		// 设置三十分钟有效
+		TimeExpire: core.Time(time.Now().Add(time.Minute * 30)),
+		Amount: &native.Amount{
+			Total:    core.Int64(pmt.Amt.Total),
+			Currency: core.String(pmt.Amt.Currency),
+		},
+	})
+	s.l.Debug("微信prepay响应",
+		logger.Field{Key: "result", Value: result},
+		logger.Field{Key: "resp", Value: resp})
+	if err != nil {
+		return "", err
+	}
+	return *resp.CodeUrl, nil
+}
+
+func (s *NativePaymentService) SyncWechatInfo(ctx context.Context, bizTradeNO string) error {
+	txn, _, err := s.svc.QueryOrderByOutTradeNo(ctx, native.QueryOrderByOutTradeNoRequest{
+		OutTradeNo: core.String(bizTradeNO),
+		Mchid:      core.String(s.mchID),
+	})
+	if err != nil {
+		return err
+	}
+	return s.updateByTxn(ctx, txn)
+}
+
+func (s *NativePaymentService) GetPayment(ctx context.Context, bizTradeId string) (domain.Payment, error) {
+	// 在这里，能不能设计一个慢路径？如果要是不知道支付结果，就去微信里面查一下？
+	// 或者异步查一下？
+	return s.repo.GetPayment(ctx, bizTradeId)
+}
+
+func (s *NativePaymentService) FindExpiredPayment(ctx context.Context, offset, limit int, t time.Time) ([]domain.Payment, error) {
+	return s.repo.FindExpiredPayment(ctx, offset, limit, t)
+}
+
+func (s *NativePaymentService) HandleCallback(ctx context.Context, txn *payments.Transaction) error {
+	return s.updateByTxn(ctx, txn)
+}
+
+func (s *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Transaction) error {
+	// 搞一个 status 映射的 map
+	status, ok := s.nativeCBTypeToStatus[*txn.TradeType]
+	if !ok {
+		// 这个地方，要告警
+		return errors.New("状态映射失败，未知状态的回调")
+	}
+	// 核心就是更新数据库状态
+	err := s.repo.UpdatePayment(ctx, domain.Payment{
+		BizTradeNO: *txn.OutTradeNo,
+		Status:     status,
+		TxnID:      *txn.TransactionId,
+	})
+	if err != nil {
+		return err
+	}
+	// 发送消息，有结果了总要通知业务方
+	// 这里有很多问题，核心就是部分失败问题，其次还有重复发送问题
+	err1 := s.producer.ProducePaymentEvent(ctx, events.PaymentEvent{
+		BizTradeNO: *txn.OutTradeNo,
+		Status:     status.AsUint8(),
+	})
+	if err1 != nil {
+		// 加监控加告警，立刻手动修复，或者自动补发
+	}
+	return nil
 }

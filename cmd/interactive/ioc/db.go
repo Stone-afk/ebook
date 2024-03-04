@@ -56,11 +56,11 @@ func InitDB(l logger.Logger, key string) *gorm.DB {
 		//Username string
 		//// root
 		//Password string
-		//// webook
+		//// ebook
 		//DBName string
 	}
 	var cfg = Config{
-		DSN: "root:root@tcp(localhost:13316)/webook_default",
+		DSN: "root:root@tcp(localhost:13316)/ebook",
 	}
 	// 看起来，remote 不支持 key 的切割
 	err := viper.UnmarshalKey("db."+key, &cfg)
