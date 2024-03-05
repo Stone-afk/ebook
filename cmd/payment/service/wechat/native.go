@@ -7,6 +7,7 @@ import (
 	"ebook/cmd/payment/repository"
 	"ebook/cmd/pkg/logger"
 	"errors"
+	"fmt"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
@@ -102,6 +103,10 @@ func (s *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (
 	if err != nil {
 		return "", err
 	}
+	// 这里可以考虑引入另外一个状态，也就是代表你已经调用了第三方支付，正在等回调的状态
+	// 但是这个状态意义不是很大。
+	// 因为在考虑兜底（定时比较数据）的时候，不管有没有调用第三方支付，
+	// 都要问一下第三方支付这个
 	return *resp.CodeUrl, nil
 }
 
@@ -134,18 +139,20 @@ func (s *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 	// 搞一个 status 映射的 map
 	status, ok := s.nativeCBTypeToStatus[*txn.TradeType]
 	if !ok {
-		// 这个地方，要告警
-		return errors.New("状态映射失败，未知状态的回调")
+		return fmt.Errorf("%w, %s", errUnknownTransactionState, *txn.TradeState)
+	}
+	pmt := domain.Payment{
+		BizTradeNO: *txn.OutTradeNo,
+		TxnID:      *txn.TransactionId,
+		Status:     status,
 	}
 	// 核心就是更新数据库状态
-	err := s.repo.UpdatePayment(ctx, domain.Payment{
-		BizTradeNO: *txn.OutTradeNo,
-		Status:     status,
-		TxnID:      *txn.TransactionId,
-	})
+	err := s.repo.UpdatePayment(ctx, pmt)
 	if err != nil {
+		// 这里有一个小问题，就是如果超时了的话，都不知道更新成功了没
 		return err
 	}
+	// 就是处于结束状态
 	// 发送消息，有结果了总要通知业务方
 	// 这里有很多问题，核心就是部分失败问题，其次还有重复发送问题
 	err1 := s.producer.ProducePaymentEvent(ctx, events.PaymentEvent{
@@ -154,6 +161,9 @@ func (s *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 	})
 	if err1 != nil {
 		// 加监控加告警，立刻手动修复，或者自动补发
+		s.l.Error("发送支付事件失败", logger.Error(err),
+			logger.String("biz_trade_no", pmt.BizTradeNO))
 	}
+	// 虽然发送事件失败，但是数据库记录了，所以可以返回 Nil
 	return nil
 }
