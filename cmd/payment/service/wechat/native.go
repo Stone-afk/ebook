@@ -38,14 +38,16 @@ type NativePaymentService struct {
 
 func NewNativePaymentService(svc *native.NativeApiService,
 	repo repository.PaymentRepository,
+	producer events.Producer,
 	l logger.Logger,
 	appid, mchid string) *NativePaymentService {
 	return &NativePaymentService{
-		l:     l,
-		repo:  repo,
-		svc:   svc,
-		appID: appid,
-		mchID: mchid,
+		l:        l,
+		repo:     repo,
+		svc:      svc,
+		appID:    appid,
+		mchID:    mchid,
+		producer: producer,
 		// 一般来说，这个都是固定的，基本不会变的
 		// 这个从配置文件里面读取
 		// 1. 测试环境 test.wechat.meoying.com
