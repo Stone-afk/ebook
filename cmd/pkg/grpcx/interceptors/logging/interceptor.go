@@ -22,6 +22,10 @@ type InterceptorBuilder struct {
 	respBody bool
 }
 
+func NewLoggerInterceptorBuilder(l logger.Logger) *InterceptorBuilder {
+	return &InterceptorBuilder{l: l}
+}
+
 func (i *InterceptorBuilder) BuildClient() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		//start := time.Now()

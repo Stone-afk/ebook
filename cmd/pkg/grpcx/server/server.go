@@ -24,6 +24,8 @@ type Server struct {
 	EtcdAddrs []string
 	Name      string
 	kaCancel  func()
+	// ETCD 服务注册租约 TTL
+	EtcdTTL int64
 }
 
 func (s *Server) Serve() error {
@@ -59,9 +61,9 @@ func (s *Server) register() error {
 	s.key = key
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	// 你可以做成配置的
-	var ttl int64 = 30
-	leaseResp, err := client.Grant(ctx, ttl)
+	//// 你可以做成配置的
+	//var ttl int64 = 30
+	leaseResp, err := client.Grant(ctx, s.EtcdTTL)
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	err = em.AddEndpoint(ctx, key, endpoints.Endpoint{
