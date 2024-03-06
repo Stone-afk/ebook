@@ -7,6 +7,9 @@ import (
 	"ebook/cmd/payment/service/wechat"
 	"ebook/cmd/pkg/logger"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/downloader"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/notify"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/option"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
@@ -40,6 +43,17 @@ func InitWechatNativeService(
 	return wechat.NewNativePaymentService(&native.NativeApiService{
 		Client: cli,
 	}, repo, producer, l, cfg.AppID, cfg.MchID)
+}
+
+func InitWechatNotifyHandler(cfg WechatConfig) *notify.Handler {
+	certificateVisitor := downloader.MgrInstance().GetCertificateVisitor(cfg.MchID)
+	// 3. 使用apiv3 key、证书访问器初始化 `notify.Handler`
+	handler, err := notify.NewRSANotifyHandler(cfg.MchKey,
+		verifiers.NewSHA256WithRSAVerifier(certificateVisitor))
+	if err != nil {
+		panic(err)
+	}
+	return handler
 }
 
 func InitWechatConfig() WechatConfig {

@@ -28,6 +28,22 @@ type Server struct {
 	EtcdTTL int64
 }
 
+func NewGRPCXServer(grpcSvc *grpc.Server,
+	etcdClient *etcdv3.Client,
+	l logger.Logger,
+	port int,
+	serverName string,
+	etcdTTL int64) *Server {
+	return &Server{
+		L:          l,
+		Server:     grpcSvc,
+		etcdClient: etcdClient,
+		Port:       port,
+		Name:       serverName,
+		EtcdTTL:    etcdTTL,
+	}
+}
+
 func (s *Server) Serve() error {
 	l, err := net.Listen("tcp", ":"+strconv.Itoa(s.Port))
 	if err != nil {
@@ -43,15 +59,17 @@ func (s *Server) Serve() error {
 }
 
 func (s *Server) register() error {
-	client, err := etcdv3.New(etcdv3.Config{
-		Endpoints: s.EtcdAddrs,
-	})
-	if err != nil {
-		return err
+	if s.etcdClient == nil {
+		client, err := etcdv3.New(etcdv3.Config{
+			Endpoints: s.EtcdAddrs,
+		})
+		if err != nil {
+			return err
+		}
+		s.etcdClient = client
 	}
-	s.etcdClient = client
 	// endpoint 以服务为维度。一个服务一个 Manager
-	em, err := endpoints.NewManager(client, "service/"+s.Name)
+	em, err := endpoints.NewManager(s.etcdClient, "service/"+s.Name)
 	if err != nil {
 		return err
 	}
@@ -63,7 +81,7 @@ func (s *Server) register() error {
 	defer cancel()
 	//// 你可以做成配置的
 	//var ttl int64 = 30
-	leaseResp, err := client.Grant(ctx, s.EtcdTTL)
+	leaseResp, err := s.etcdClient.Grant(ctx, s.EtcdTTL)
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	err = em.AddEndpoint(ctx, key, endpoints.Endpoint{

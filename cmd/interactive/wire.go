@@ -29,6 +29,7 @@ var thirdProvider = wire.NewSet(
 	// 暂时不理会 consumer 怎么启动
 	ioc.InitSyncProducer,
 	ioc.InitKafka,
+	ioc.InitEtcdClient,
 )
 
 var migratorProvider = wire.NewSet(

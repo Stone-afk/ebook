@@ -22,6 +22,7 @@ import (
 //go:generate wire
 func Init() *App {
 	logger := ioc.InitLogger()
+	client := ioc.InitEtcdClient()
 	srcDB := ioc.InitSRC(logger)
 	dstDB := ioc.InitDST(logger)
 	doubleWritePool := ioc.InitDoubleWritePool(srcDB, dstDB)
@@ -32,13 +33,13 @@ func Init() *App {
 	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
-	server := ioc.InitGRPCxServer(logger, interactiveServiceServer)
-	client := ioc.InitKafka()
-	syncProducer := ioc.InitSyncProducer(client)
+	server := ioc.InitGRPCxServer(logger, client, interactiveServiceServer)
+	saramaClient := ioc.InitKafka()
+	syncProducer := ioc.InitSyncProducer(saramaClient)
 	producer := ioc.InitMigradatorProducer(syncProducer)
 	ginxServer := ioc.InitMigratorWeb(logger, srcDB, dstDB, doubleWritePool, producer)
-	interactiveReadEventConsumer := article.NewInteractiveReadEventConsumer(client, interactiveRepository, logger)
-	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, client)
+	interactiveReadEventConsumer := article.NewInteractiveReadEventConsumer(saramaClient, interactiveRepository, logger)
+	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, saramaClient)
 	v := ioc.NewConsumers(interactiveReadEventConsumer, consumer)
 	app := &App{
 		server:    server,
@@ -52,6 +53,6 @@ func Init() *App {
 
 var serviceProvider = wire.NewSet(dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache, repository.NewInteractiveRepository, service.NewInteractiveService)
 
-var thirdProvider = wire.NewSet(ioc.InitDST, ioc.InitSRC, ioc.InitBizDB, ioc.InitDoubleWritePool, ioc.InitRedis, ioc.InitLogger, ioc.InitSyncProducer, ioc.InitKafka)
+var thirdProvider = wire.NewSet(ioc.InitDST, ioc.InitSRC, ioc.InitBizDB, ioc.InitDoubleWritePool, ioc.InitRedis, ioc.InitLogger, ioc.InitSyncProducer, ioc.InitKafka, ioc.InitEtcdClient)
 
 var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitMigradatorProducer)

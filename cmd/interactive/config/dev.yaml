@@ -16,11 +16,15 @@ kafka:
   addrs:
     - "localhost:9094"
 
+etcd:
+  endpoints:
+    - "localhost:12379"
+
 grpc:
   server:
     port: 8090
-    etcdAddrs:
-      - "localhost:12379"
+    etcdAddrs: "localhost:12379"
+    etcdTTL: 60
 
 #  client:
 #    user:
