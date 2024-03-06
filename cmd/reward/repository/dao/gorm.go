@@ -10,7 +10,7 @@ type RewardGORMDAO struct {
 	db *gorm.DB
 }
 
-func (dao RewardGORMDAO) Insert(ctx context.Context, r Reward) (int64, error) {
+func (dao *RewardGORMDAO) Insert(ctx context.Context, r Reward) (int64, error) {
 	now := time.Now().UnixMilli()
 	r.Ctime = now
 	r.Utime = now
@@ -18,7 +18,7 @@ func (dao RewardGORMDAO) Insert(ctx context.Context, r Reward) (int64, error) {
 	return r.Id, err
 }
 
-func (dao RewardGORMDAO) GetReward(ctx context.Context, rid int64) (Reward, error) {
+func (dao *RewardGORMDAO) GetReward(ctx context.Context, rid int64) (Reward, error) {
 	// 通过 uid 来判定是自己的打赏，防止黑客捞数据
 	var r Reward
 	err := dao.db.WithContext(ctx).
@@ -27,7 +27,7 @@ func (dao RewardGORMDAO) GetReward(ctx context.Context, rid int64) (Reward, erro
 	return r, err
 }
 
-func (dao RewardGORMDAO) UpdateStatus(ctx context.Context, rid int64, status uint8) error {
+func (dao *RewardGORMDAO) UpdateStatus(ctx context.Context, rid int64, status uint8) error {
 	return dao.db.WithContext(ctx).
 		Where("id = ?", rid).
 		Updates(map[string]any{

@@ -11,15 +11,15 @@ type paymentRepository struct {
 	dao dao.PaymentDAO
 }
 
-func (repo paymentRepository) AddPayment(ctx context.Context, pmt domain.Payment) error {
+func (repo *paymentRepository) AddPayment(ctx context.Context, pmt domain.Payment) error {
 	return repo.dao.Insert(ctx, repo.toEntity(pmt))
 }
 
-func (repo paymentRepository) UpdatePayment(ctx context.Context, pmt domain.Payment) error {
+func (repo *paymentRepository) UpdatePayment(ctx context.Context, pmt domain.Payment) error {
 	return repo.dao.UpdateTxnIDAndStatus(ctx, pmt.BizTradeNO, pmt.TxnID, pmt.Status)
 }
 
-func (repo paymentRepository) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {
+func (repo *paymentRepository) FindExpiredPayment(ctx context.Context, offset int, limit int, t time.Time) ([]domain.Payment, error) {
 	pmts, err := repo.dao.FindExpiredPayment(ctx, offset, limit, t)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (repo paymentRepository) FindExpiredPayment(ctx context.Context, offset int
 	return res, nil
 }
 
-func (repo paymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
+func (repo *paymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
 	r, err := repo.dao.GetPayment(ctx, bizTradeNO)
 	return repo.toDomain(r), err
 }
