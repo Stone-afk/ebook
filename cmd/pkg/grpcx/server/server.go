@@ -28,7 +28,7 @@ type Server struct {
 	EtcdTTL int64
 }
 
-func NewGRPCXServer(grpcSvc *grpc.Server,
+func NewGRPCXServer(grpcSrv *grpc.Server,
 	etcdClient *etcdv3.Client,
 	l logger.Logger,
 	port int,
@@ -36,7 +36,7 @@ func NewGRPCXServer(grpcSvc *grpc.Server,
 	etcdTTL int64) *Server {
 	return &Server{
 		L:          l,
-		Server:     grpcSvc,
+		Server:     grpcSrv,
 		etcdClient: etcdClient,
 		Port:       port,
 		Name:       serverName,

@@ -1,7 +1,7 @@
 package ioc
 
 import (
-	pmtv1 "ebook/cmd/api/proto/gen/payment/v1"
+	accountv1 "ebook/cmd/api/proto/gen/account/v1"
 	"github.com/spf13/viper"
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/resolver"
@@ -9,13 +9,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func InitPaymentClient(etcdClient *etcdv3.Client) pmtv1.WechatPaymentServiceClient {
+func InitAccountClient(etcdClient *etcdv3.Client) accountv1.AccountServiceClient {
 	type Config struct {
 		Target string `json:"target"`
 		Secure bool   `json:"secure"`
 	}
 	var cfg Config
-	err := viper.UnmarshalKey("grpc.client.payment", &cfg)
+	err := viper.UnmarshalKey("grpc.client.account", &cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -31,5 +31,5 @@ func InitPaymentClient(etcdClient *etcdv3.Client) pmtv1.WechatPaymentServiceClie
 	if err != nil {
 		panic(err)
 	}
-	return pmtv1.NewWechatPaymentServiceClient(cc)
+	return accountv1.NewAccountServiceClient(cc)
 }

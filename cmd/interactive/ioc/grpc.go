@@ -21,9 +21,9 @@ func InitGRPCxServer(l logger.Logger, etcdClient *etcdv3.Client, intrServer *grp
 	if err != nil {
 		panic(err)
 	}
-	grpcSvc := grpc.NewServer()
-	intrServer.Registry(grpcSvc)
-	return server.NewGRPCXServer(grpcSvc, etcdClient, l, cfg.Port, "interactive", cfg.EtcdTTL)
+	grpcSrv := grpc.NewServer()
+	intrServer.Registry(grpcSrv)
+	return server.NewGRPCXServer(grpcSrv, etcdClient, l, cfg.Port, "interactive", cfg.EtcdTTL)
 }
 
 //func InitZeroServer(intrServer *grpc2.InteractiveServiceServer) *server.ZeroServer {
