@@ -20,9 +20,9 @@ func InitGRPCServer(l logger.Logger, etcdClient *etcdv3.Client, weServer *grpc2.
 	if err != nil {
 		panic(err)
 	}
-	grpcSvc := grpc.NewServer(grpc.ChainUnaryInterceptor(
+	grpcSrv := grpc.NewServer(grpc.ChainUnaryInterceptor(
 		logging.NewLoggerInterceptorBuilder(l).Build(),
 	))
-	weServer.Register(grpcSvc)
-	return server.NewGRPCXServer(grpcSvc, etcdClient, l, cfg.Port, "payment", cfg.EtcdTTL)
+	weServer.Register(grpcSrv)
+	return server.NewGRPCXServer(grpcSrv, etcdClient, l, cfg.Port, "payment", cfg.EtcdTTL)
 }
