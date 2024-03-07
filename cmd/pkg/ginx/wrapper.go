@@ -2,11 +2,15 @@ package ginx
 
 import (
 	"ebook/cmd/pkg/logger"
+	"ebook/cmd/pkg/logger/nop"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strconv"
 )
+
+// 受制于泛型，我们这里只能使用包变量，我深恶痛绝的包变量
+var log logger.Logger = nop.NewNopLogger()
 
 func Wrap(l logger.Logger, fn func(ctx *gin.Context) (Result[any], error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -24,7 +28,41 @@ func Wrap(l logger.Logger, fn func(ctx *gin.Context) (Result[any], error)) gin.H
 	}
 }
 
-func WrapToken[Req any, C jwt.Claims](l logger.Logger, fn func(ctx *gin.Context, uc C) (Result[any], error)) gin.HandlerFunc {
+// WrapClaimsAndReq 如果做成中间件来源出去，那么直接耦合 UserClaims 也是不好的。
+func WrapClaimsAndReq[Req any](fn func(*gin.Context, Req, UserClaims) (Result[any], error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var req Req
+		if err := ctx.Bind(&req); err != nil {
+			log.Error("解析请求失败", logger.Error(err))
+			return
+		}
+		// 可以用包变量来配置，还是那句话，因为泛型的限制，这里只能用包变量
+		rawVal, ok := ctx.Get("user")
+		if !ok {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			log.Error("无法获得 claims",
+				logger.String("path", ctx.Request.URL.Path))
+			return
+		}
+		// 注意，这里要求放进去 ctx 的不能是*UserClaims，这是常见的一个错误
+		claims, ok := rawVal.(UserClaims)
+		if !ok {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			log.Error("无法获得 claims",
+				logger.String("path", ctx.Request.URL.Path))
+			return
+		}
+		res, err := fn(ctx, req, claims)
+		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
+		if err != nil {
+			log.Error("执行业务逻辑失败",
+				logger.Error(err))
+		}
+		ctx.JSON(http.StatusOK, res)
+	}
+}
+
+func WrapToken[C jwt.Claims](l logger.Logger, fn func(ctx *gin.Context, uc C) (Result[any], error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		val, ok := ctx.Get("users")
 		if !ok {
