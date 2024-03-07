@@ -174,9 +174,9 @@ func (s *WechatNativeRewardService) toRid(tradeNO string) int64 {
 
 func NewWechatNativeRewardService(
 	paymentSvc pmtv1.WechatPaymentServiceClient,
+	accountSvc accountv1.AccountServiceClient,
 	repo repository.RewardRepository,
 	l logger.Logger,
-	accountSvc accountv1.AccountServiceClient,
 ) RewardService {
 	return &WechatNativeRewardService{paymentSvc: paymentSvc, repo: repo, l: l, accountSvc: accountSvc}
 }
