@@ -1,1 +1,1 @@
-package bff
+package main
