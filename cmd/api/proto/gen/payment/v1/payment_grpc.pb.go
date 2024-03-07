@@ -25,6 +25,7 @@ const (
 	WechatPaymentService_GetPayment_FullMethodName   = "/pmt.v1.WechatPaymentService/GetPayment"
 )
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/api/proto/gen/payment/v1/payment_grpc.pb.go -package=pmtmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/api/proto/gen/payment/v1/mocks/payment_grpc.mock.go
 // WechatPaymentServiceClient is the client API for WechatPaymentService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
