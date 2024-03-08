@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	userv1 "ebook/cmd/api/proto/gen/user/v1"
 	"ebook/cmd/article/domain"
 	"ebook/cmd/article/repository/cache"
 	"ebook/cmd/article/repository/dao"
@@ -12,9 +13,9 @@ import (
 )
 
 type articleRepository struct {
-	dao   dao.ArticleDAO
-	cache cache.ArticleCache
-	//userRepo UserRepository
+	dao     dao.ArticleDAO
+	cache   cache.ArticleCache
+	userSvc userv1.UserServiceClient
 
 	// SyncV1 用
 	authorDAO dao.ArticleAuthorDAO
@@ -27,13 +28,13 @@ type articleRepository struct {
 
 func NewArticleRepository(dao dao.ArticleDAO,
 	cache cache.ArticleCache,
-	//userRepo UserRepository,
+	userSvc userv1.UserServiceClient,
 	l logger.Logger) ArticleRepository {
 	return &articleRepository{
-		//userRepo: userRepo,
-		dao:   dao,
-		cache: cache,
-		l:     l,
+		userSvc: userSvc,
+		dao:     dao,
+		cache:   cache,
+		l:       l,
 	}
 }
 
@@ -73,28 +74,21 @@ func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (
 	if err != nil {
 		return domain.Article{}, err
 	}
-	//// 在这边要组装 user 了，适合单体应用
-	//usr, err := repo.userRepo.FindById(ctx, art.AuthorId)
-	//if err != nil {
-	//	return domain.Article{}, err
-	//}
-	//res := domain.Article{
-	//	Id:      art.Id,
-	//	Title:   art.Title,
-	//	Status:  domain.ArticleStatus(art.Status),
-	//	Content: art.Content,
-	//	Author: domain.Author{
-	//		Id:   usr.Id,
-	//		Name: usr.Nickname,
-	//	},
-	//	Ctime: time.UnixMilli(art.Ctime),
-	//	Utime: time.UnixMilli(art.Utime),
-	//}
+	resp, err := repo.userSvc.Profile(ctx, &userv1.ProfileRequest{
+		Id: art.AuthorId,
+	})
+	if err != nil {
+		return domain.Article{}, err
+	}
 	res = domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,
 		Status:  domain.ArticleStatus(art.Status),
 		Content: art.Content,
+		Author: domain.Author{
+			Id:   resp.User.Id,
+			Name: resp.User.Nickname,
+		},
 	}
 	// 也可以同步
 	go func() {
@@ -270,4 +264,33 @@ func (repo *articleRepository) toDomain(art dao.Article) domain.Article {
 		},
 		Status: domain.ArticleStatus(art.Status),
 	}
+}
+
+type GrpcAuthorRepository struct {
+	userService userv1.UserServiceClient
+	dao         dao.ArticleDAO
+}
+
+func NewGrpcAuthorRepository(articleDao dao.ArticleDAO, userService userv1.UserServiceClient) AuthorRepository {
+	return &GrpcAuthorRepository{
+		userService: userService,
+		dao:         articleDao,
+	}
+}
+
+func (g *GrpcAuthorRepository) FindAuthor(ctx context.Context, id int64) (domain.Author, error) {
+	art, err := g.dao.GetPubById(ctx, id)
+	if err != nil {
+		return domain.Author{}, nil
+	}
+	u, err := g.userService.Profile(ctx, &userv1.ProfileRequest{
+		Id: art.AuthorId,
+	})
+	if err != nil {
+		return domain.Author{}, err
+	}
+	return domain.Author{
+		Id:   u.User.Id,
+		Name: u.User.Nickname,
+	}, nil
 }

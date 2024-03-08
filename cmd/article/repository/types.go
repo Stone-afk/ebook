@@ -23,6 +23,12 @@ type ArticleRepository interface {
 	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 }
 
+// AuthorRepository 封装user的client用于获取用户信息
+type AuthorRepository interface {
+	// FindAuthor id为文章id
+	FindAuthor(ctx context.Context, id int64) (domain.Author, error)
+}
+
 // HistoryRecordRepository 也就是一个增删改查的事情
 type HistoryRecordRepository interface {
 	AddRecord(ctx context.Context, r domain.HistoryRecord) error
