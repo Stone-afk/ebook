@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
-	"ebook/cmd/internal/domain"
-	"ebook/cmd/internal/repository/cache"
-	"ebook/cmd/internal/repository/dao/article"
+	userv1 "ebook/cmd/api/proto/gen/user/v1"
+	"ebook/cmd/article/domain"
+	"ebook/cmd/article/repository/cache"
+	"ebook/cmd/article/repository/dao"
 	"ebook/cmd/pkg/logger"
 	"github.com/ecodeclub/ekit/slice"
 	"gorm.io/gorm"
@@ -12,33 +13,33 @@ import (
 )
 
 type articleRepository struct {
-	dao      article.ArticleDAO
-	cache    cache.ArticleCache
-	userRepo UserRepository
+	dao     dao.ArticleDAO
+	cache   cache.ArticleCache
+	userSvc userv1.UserServiceClient
 
 	// SyncV1 用
-	authorDAO article.ArticleAuthorDAO
-	readerDAO article.ArticleReaderDAO
+	authorDAO dao.ArticleAuthorDAO
+	readerDAO dao.ArticleReaderDAO
 
 	// SyncV2 用
 	db *gorm.DB
 	l  logger.Logger
 }
 
-func NewArticleRepository(dao article.ArticleDAO,
+func NewArticleRepository(dao dao.ArticleDAO,
 	cache cache.ArticleCache,
-	userRepo UserRepository,
+	userSvc userv1.UserServiceClient,
 	l logger.Logger) ArticleRepository {
 	return &articleRepository{
-		userRepo: userRepo,
-		dao:      dao,
-		cache:    cache,
-		l:        l,
+		userSvc: userSvc,
+		dao:     dao,
+		cache:   cache,
+		l:       l,
 	}
 }
 
-func NewArticleRepositoryV1(authorDAO article.ArticleAuthorDAO,
-	readerDAO article.ArticleReaderDAO) ArticleRepository {
+func NewArticleRepositoryV1(authorDAO dao.ArticleAuthorDAO,
+	readerDAO dao.ArticleReaderDAO) ArticleRepository {
 	return &articleRepository{
 		authorDAO: authorDAO,
 		readerDAO: readerDAO,
@@ -57,34 +58,37 @@ func (repo *articleRepository) ListPub(ctx context.Context, uTime time.Time, off
 	if err != nil {
 		return nil, err
 	}
-	return slice.Map[article.PublishedArticle, domain.Article](val, func(idx int, src article.PublishedArticle) domain.Article {
+	return slice.Map[dao.PublishedArticle, domain.Article](val, func(idx int, src dao.PublishedArticle) domain.Article {
 		// 偷懒写法
-		return repo.toDomain(article.Article(src))
+		return repo.toDomain(dao.Article(src))
 	}), nil
 }
 
 func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
+	res, err := repo.cache.GetPub(ctx, id)
+	if err == nil {
+		return res, err
+	}
 	// 读取线上库数据，如果你的 Content 被你放过去了 OSS 上，你就要让前端去读 Content 字段
 	art, err := repo.dao.GetPubById(ctx, id)
 	if err != nil {
 		return domain.Article{}, err
 	}
-	// 在这边要组装 user 了，适合单体应用
-	usr, err := repo.userRepo.FindById(ctx, art.AuthorId)
+	resp, err := repo.userSvc.Profile(ctx, &userv1.ProfileRequest{
+		Id: art.AuthorId,
+	})
 	if err != nil {
 		return domain.Article{}, err
 	}
-	res := domain.Article{
+	res = domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,
 		Status:  domain.ArticleStatus(art.Status),
 		Content: art.Content,
 		Author: domain.Author{
-			Id:   usr.Id,
-			Name: usr.Nickname,
+			Id:   resp.User.Id,
+			Name: resp.User.Nickname,
 		},
-		Ctime: time.UnixMilli(art.Ctime),
-		Utime: time.UnixMilli(art.Utime),
 	}
 	// 也可以同步
 	go func() {
@@ -131,8 +135,8 @@ func (repo *articleRepository) List(ctx context.Context, authorId int64, offset,
 	if err != nil {
 		return nil, err
 	}
-	res := slice.Map[article.Article, domain.Article](arts,
-		func(idx int, src article.Article) domain.Article {
+	res := slice.Map[dao.Article, domain.Article](arts,
+		func(idx int, src dao.Article) domain.Article {
 			return repo.toDomain(src)
 		})
 	// 提前准备文章内容详情的缓存  一般都是让调用者来控制是否异步。
@@ -168,8 +172,8 @@ func (repo *articleRepository) SyncV2(ctx context.Context, art domain.Article) (
 	// 直接 defer Rollback
 	// 如果我们后续 Commit 了，这里会得到一个错误，但是没关系
 	defer tx.Rollback()
-	authorDAO := article.NewGORMArticleDAO(tx)
-	readerDAO := article.NewGORMArticleReaderDAO(tx)
+	authorDAO := dao.NewGORMArticleDAO(tx)
+	readerDAO := dao.NewGORMArticleReaderDAO(tx)
 
 	// 下面代码和 SyncV1 一模一样
 	artn := repo.toEntity(art)
@@ -189,7 +193,7 @@ func (repo *articleRepository) SyncV2(ctx context.Context, art domain.Article) (
 		return 0, err
 	}
 	artn.Id = id
-	err = readerDAO.UpsertV2(ctx, article.PublishedArticle(artn))
+	err = readerDAO.UpsertV2(ctx, dao.PublishedArticle(artn))
 	if err != nil {
 		// 依赖于 defer 来 rollback
 		return 0, err
@@ -240,8 +244,8 @@ func (repo *articleRepository) Create(ctx context.Context, art domain.Article) (
 	return repo.dao.Insert(ctx, repo.toEntity(art))
 }
 
-func (repo *articleRepository) toEntity(art domain.Article) article.Article {
-	return article.Article{
+func (repo *articleRepository) toEntity(art domain.Article) dao.Article {
+	return dao.Article{
 		Id:       art.Id,
 		Title:    art.Title,
 		Content:  art.Content,
@@ -250,7 +254,7 @@ func (repo *articleRepository) toEntity(art domain.Article) article.Article {
 	}
 }
 
-func (repo *articleRepository) toDomain(art article.Article) domain.Article {
+func (repo *articleRepository) toDomain(art dao.Article) domain.Article {
 	return domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,
@@ -260,4 +264,33 @@ func (repo *articleRepository) toDomain(art article.Article) domain.Article {
 		},
 		Status: domain.ArticleStatus(art.Status),
 	}
+}
+
+type GrpcAuthorRepository struct {
+	userService userv1.UserServiceClient
+	dao         dao.ArticleDAO
+}
+
+func NewGrpcAuthorRepository(articleDao dao.ArticleDAO, userService userv1.UserServiceClient) AuthorRepository {
+	return &GrpcAuthorRepository{
+		userService: userService,
+		dao:         articleDao,
+	}
+}
+
+func (g *GrpcAuthorRepository) FindAuthor(ctx context.Context, id int64) (domain.Author, error) {
+	art, err := g.dao.GetPubById(ctx, id)
+	if err != nil {
+		return domain.Author{}, nil
+	}
+	u, err := g.userService.Profile(ctx, &userv1.ProfileRequest{
+		Id: art.AuthorId,
+	})
+	if err != nil {
+		return domain.Author{}, err
+	}
+	return domain.Author{
+		Id:   u.User.Id,
+		Name: u.User.Nickname,
+	}, nil
 }

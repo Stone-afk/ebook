@@ -16,6 +16,26 @@ type MongoArticleDAO struct {
 	node    *snowflake.Node
 }
 
+func (dao *MongoArticleDAO) GetByAuthor(ctx context.Context, authorId int64, offset, limit int) ([]Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (dao *MongoArticleDAO) GetById(ctx context.Context, id int64) (Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (dao *MongoArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (dao *MongoArticleDAO) ListPubByUtime(ctx context.Context, uTime time.Time, offset int, limit int) ([]PublishedArticle, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewMongoDBDAO(db *mongo.Database, node *snowflake.Node) ArticleDAO {
 	return &MongoArticleDAO{
 		node:    node,
