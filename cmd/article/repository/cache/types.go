@@ -2,8 +2,12 @@ package cache
 
 import (
 	"context"
-	"ebook/cmd/internal/domain"
+	"ebook/cmd/article/domain"
+	"github.com/redis/go-redis/v9"
 )
+
+// ErrKeyNotExist 因为我们目前还是只有一个实现，所以可以保持用别名
+var ErrKeyNotExist = redis.Nil
 
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/article/repository/cache/types.go -package=cachemocks -destination=/Users/stone/go_project/ebook/ebook/cmd/internal/repository/cache/mocks/article.mock.go
 type ArticleCache interface {

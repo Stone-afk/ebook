@@ -1,4 +1,4 @@
-package article
+package dao
 
 import (
 	"context"
@@ -34,14 +34,6 @@ func (dao *MongoArticleDAO) GetPubById(ctx context.Context, id int64) (Published
 func (dao *MongoArticleDAO) ListPubByUtime(ctx context.Context, uTime time.Time, offset int, limit int) ([]PublishedArticle, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-func NewMongoDBDAO(db *mongo.Database, node *snowflake.Node) ArticleDAO {
-	return &MongoArticleDAO{
-		node:    node,
-		col:     db.Collection("articles"),
-		liveCol: db.Collection("published_articles"),
-	}
 }
 
 func (dao *MongoArticleDAO) Sync(ctx context.Context, art Article) (int64, error) {
@@ -125,4 +117,12 @@ func (dao *MongoArticleDAO) UpdateById(ctx context.Context, art Article) error {
 		return errors.New("更新失败")
 	}
 	return nil
+}
+
+func NewMongoDBDAO(db *mongo.Database, node *snowflake.Node) ArticleDAO {
+	return &MongoArticleDAO{
+		node:    node,
+		col:     db.Collection("articles"),
+		liveCol: db.Collection("published_articles"),
+	}
 }

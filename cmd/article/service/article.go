@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"ebook/cmd/internal/domain"
-	events "ebook/cmd/internal/events/article"
-	"ebook/cmd/internal/repository"
+	"ebook/cmd/article/domain"
+	"ebook/cmd/article/events"
+	"ebook/cmd/article/repository"
 	"ebook/cmd/pkg/logger"
 	"time"
 )
@@ -24,7 +24,7 @@ type articleService struct {
 }
 
 func NewArticleService(repo repository.ArticleRepository,
-	l logger.Logger, producer events.Producer) ArticleService {
+	producer events.Producer, l logger.Logger) ArticleService {
 	return &articleService{
 		repo:     repo,
 		log:      l,
@@ -126,9 +126,9 @@ func (svc *articleService) List(ctx context.Context, authorId int64, offset, lim
 	return svc.repo.List(ctx, authorId, offset, limit)
 }
 
-func (svc *articleService) Withdraw(ctx context.Context, art domain.Article) error {
+func (svc *articleService) Withdraw(ctx context.Context, uid, id int64) error {
 	// art.Status = domain.ArticleStatusPrivate 然后直接把整个 art 往下传
-	return svc.repo.SyncStatus(ctx, art.Id, art.Author.Id, domain.ArticleStatusPrivate)
+	return svc.repo.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
 }
 
 func (svc *articleService) Save(ctx context.Context, art domain.Article) (int64, error) {
