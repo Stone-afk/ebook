@@ -1,8 +1,10 @@
 //go:build wireinject
+
 package main
 
 import (
 	"ebook/cmd/pkg/appx"
+	"ebook/cmd/reward/events"
 	"ebook/cmd/reward/grpc"
 	"ebook/cmd/reward/ioc"
 	"ebook/cmd/reward/repository"
@@ -16,12 +18,15 @@ var thirdPartySet = wire.NewSet(
 	ioc.InitDB,
 	ioc.InitLogger,
 	ioc.InitEtcdClient,
-	ioc.InitRedis)
+	ioc.InitRedis,
+	ioc.InitKafka)
 
 //go:generate wire
 func Init() *appx.App {
 	wire.Build(thirdPartySet,
 		service.NewWechatNativeRewardService,
+		events.NewPaymentEventConsumer,
+		ioc.NewConsumers,
 		ioc.InitAccountClient,
 		ioc.InitGRPCxServer,
 		ioc.InitPaymentClient,
@@ -29,7 +34,7 @@ func Init() *appx.App {
 		cache.NewRewardRedisCache,
 		dao.NewRewardGORMDAO,
 		grpc.NewRewardServiceServer,
-		wire.Struct(new(appx.App), "GRPCServer"),
+		wire.Struct(new(appx.App), "GRPCServer", "Consumers"),
 	)
 	return new(appx.App)
 }

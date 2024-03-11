@@ -40,6 +40,17 @@ type PaymentEventConsumer struct {
 	svc    service.RewardService
 }
 
+func NewPaymentEventConsumer(
+	client sarama.Client,
+	svc service.RewardService,
+	l logger.Logger) *PaymentEventConsumer {
+	return &PaymentEventConsumer{
+		client: client,
+		svc:    svc,
+		l:      l,
+	}
+}
+
 // Start 这边就是自己启动 goroutine 了
 func (r *PaymentEventConsumer) Start() error {
 	cg, err := sarama.NewConsumerGroupFromClient("reward",
