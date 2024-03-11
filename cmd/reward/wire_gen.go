@@ -8,6 +8,7 @@ package main
 
 import (
 	"ebook/cmd/pkg/appx"
+	"ebook/cmd/reward/events"
 	"ebook/cmd/reward/grpc"
 	"ebook/cmd/reward/ioc"
 	"ebook/cmd/reward/repository"
@@ -33,12 +34,16 @@ func Init() *appx.App {
 	rewardService := service.NewWechatNativeRewardService(wechatPaymentServiceClient, accountServiceClient, rewardRepository, logger)
 	rewardServiceServer := grpc.NewRewardServiceServer(rewardService)
 	server := ioc.InitGRPCxServer(rewardServiceServer, client, logger)
+	saramaClient := ioc.InitKafka()
+	paymentEventConsumer := events.NewPaymentEventConsumer(saramaClient, rewardService, logger)
+	v := ioc.NewConsumers(paymentEventConsumer)
 	app := &appx.App{
 		GRPCServer: server,
+		Consumers:  v,
 	}
 	return app
 }
 
 // wire.go:
 
-var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitLogger, ioc.InitEtcdClient, ioc.InitRedis)
+var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitLogger, ioc.InitEtcdClient, ioc.InitRedis, ioc.InitKafka)
