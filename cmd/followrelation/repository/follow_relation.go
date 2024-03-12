@@ -39,6 +39,20 @@ func (repo *CachedRelationRepository) GetFollowStatics(ctx context.Context, uid 
 	panic("implement me")
 }
 
+func (repo *CachedRelationRepository) toDomain(fr dao.FollowRelation) domain.FollowRelation {
+	return domain.FollowRelation{
+		Followee: fr.Followee,
+		Follower: fr.Follower,
+	}
+}
+
+func (repo *CachedRelationRepository) toEntity(c domain.FollowRelation) dao.FollowRelation {
+	return dao.FollowRelation{
+		Followee: c.Followee,
+		Follower: c.Follower,
+	}
+}
+
 func NewFollowRelationRepository(dao dao.FollowRelationDao,
 	cache cache.FollowCache, l logger.Logger) FollowRepository {
 	return &CachedRelationRepository{
