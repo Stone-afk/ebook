@@ -6,6 +6,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/IBM/sarama v1.42.1
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.526
+	github.com/aliyun/aliyun-tablestore-go-sdk v1.7.14
 	github.com/aws/aws-sdk-go v1.46.6
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/cloopen/go-sms-sdk v0.0.0-20200702015230-7c5619f80c9e
@@ -24,6 +25,7 @@ require (
 	github.com/google/wire v0.5.0
 	github.com/gotomicro/redis-lock v0.0.3
 	github.com/lithammer/shortuuid/v4 v4.0.0
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/robfig/cron/v3 v3.0.1
@@ -47,6 +49,7 @@ require (
 	golang.org/x/sync v0.5.0
 	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.32.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.2
 	gorm.io/plugin/opentelemetry v0.1.4
@@ -84,6 +87,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/flatbuffers v1.11.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -95,6 +99,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
@@ -167,7 +172,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.29.1 // indirect
