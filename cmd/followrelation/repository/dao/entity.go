@@ -8,8 +8,9 @@ const (
 
 type FollowRelation struct {
 	ID int64 `gorm:"primaryKey,autoIncrement,column:id"`
-
+	// 关注人id
 	Follower int64 `gorm:"type:int(11);not null;uniqueIndex:follower_followee"`
+	// 被关注人id
 	Followee int64 `gorm:"type:int(11);not null;uniqueIndex:follower_followee"`
 
 	Status uint8

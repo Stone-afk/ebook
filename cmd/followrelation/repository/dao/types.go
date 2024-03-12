@@ -7,7 +7,7 @@ type FollowRelationDao interface {
 	FollowRelationList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error)
 	FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error)
 	// CreateFollowRelation 创建联系人
-	CreateFollowRelation(ctx context.Context, c FollowRelation) error
+	CreateFollowRelation(ctx context.Context, f FollowRelation) error
 	// UpdateStatus 更新状态
 	UpdateStatus(ctx context.Context, followee int64, follower int64, status uint8) error
 	// CntFollower 统计计算关注自己的人有多少
