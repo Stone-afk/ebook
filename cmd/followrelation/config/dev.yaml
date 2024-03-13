@@ -9,3 +9,6 @@ grpc:
 etcd:
   endpoints:
     - "localhost:12379"
+
+redis:
+  addr: "localhost:16379"
