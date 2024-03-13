@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package followrelation
+package main
 
 import (
 	grpc7 "ebook/cmd/followrelation/grpc"
