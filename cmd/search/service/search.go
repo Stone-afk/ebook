@@ -1,1 +1,74 @@
 package service
+
+import (
+	"context"
+	"ebook/cmd/search/domain"
+	"ebook/cmd/search/repository"
+	"golang.org/x/sync/errgroup"
+	"strings"
+)
+
+type userSearchService struct {
+	userRepo repository.UserRepository
+}
+
+func (s *searchService) SearchUser(ctx context.Context, expression string) (domain.SearchResult, error) {
+	keywords := strings.Split(expression, " ")
+	var res domain.SearchResult
+	users, err := s.userRepo.SearchUser(ctx, keywords)
+	res.Users = users
+	return res, err
+}
+
+func NewUserSearchService(userRepo repository.UserRepository) UserSearchService {
+	return &searchService{userRepo: userRepo}
+}
+
+type articleSearchService struct {
+	articleRepo repository.ArticleRepository
+}
+
+func (s *searchService) SearchArticle(ctx context.Context, uid int64, expression string) (domain.SearchResult, error) {
+	keywords := strings.Split(expression, " ")
+	var res domain.SearchResult
+	arts, err := s.articleRepo.SearchArticle(ctx, uid, keywords)
+	res.Articles = arts
+	return res, err
+}
+
+func NewArticleSearchService(articleRepo repository.ArticleRepository) ArticleSearchService {
+	return &searchService{articleRepo: articleRepo}
+}
+
+type searchService struct {
+	userRepo    repository.UserRepository
+	articleRepo repository.ArticleRepository
+}
+
+func (s *searchService) Search(ctx context.Context, uid int64, expression string) (domain.SearchResult, error) {
+	// 这边一般要对 expression 进行一些预处理
+	// 正常大家都是使用的空格符来分割的，但是有些时候可能会手抖，输错
+	keywords := strings.Split(expression, " ")
+	// 注意这里我们没有使用 multi query 或者 multi match 之类的写法
+	// 是因为正常来说，不同的业务放过来的数据，什么支持搜索，什么不支持搜索，
+	// 以及究竟怎么用于搜索，都是有区别的。所以这里我们利用两个 repo 来组合结果
+	var eg errgroup.Group
+	var res domain.SearchResult
+	eg.Go(func() error {
+		users, err := s.userRepo.SearchUser(ctx, keywords)
+		res.Users = users
+		return err
+	})
+	eg.Go(func() error {
+		// 0000 0011
+		arts, err := s.articleRepo.SearchArticle(ctx, uid, keywords)
+		res.Articles = arts
+		return err
+	})
+	// 如果你有更多，你就在这里继续开 eg.Go
+	return res, eg.Wait()
+}
+
+func NewSearchService(userRepo repository.UserRepository, articleRepo repository.ArticleRepository) SearchService {
+	return &searchService{userRepo: userRepo, articleRepo: articleRepo}
+}
