@@ -12,3 +12,7 @@ etcd:
 
 redis:
   addr: "localhost:16379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
