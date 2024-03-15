@@ -7,6 +7,7 @@ import (
 	"ebook/cmd/tag/repository/cache"
 	"ebook/cmd/tag/repository/dao"
 	"github.com/ecodeclub/ekit/slice"
+	"time"
 )
 
 type CachedTagRepository struct {
@@ -31,8 +32,36 @@ func (repo *CachedTagRepository) PreloadUserTags(ctx context.Context) error {
 	// 1. list  使用 List 在多个实例启动时预加载数据可能导致冲突，所以改成 hash
 	// 2. hash 用 hash 结构
 	// 3. set, sorted set 都可以
-	//TODO implement me
-	panic("implement me")
+	offset := 0
+	batch := 100
+	for {
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		// 在这里还有一点点的优化手段，就是 GetTags 的时候，order by uid
+		tags, err := repo.dao.GetTags(dbCtx, offset, batch)
+		cancel()
+		if err != nil {
+			// 记录日志，然后返回
+			return err
+		}
+		// 按照 uid 进行分组，一个 uid 执行一次 append
+		// 这些 tag 是归属于不同的用户
+		for _, tag := range tags {
+			rCtx, cancel := context.WithTimeout(ctx, time.Second)
+			err = repo.cache.Append(rCtx, tag.Uid, repo.toDomain(tag))
+			cancel()
+			if err != nil {
+				// 记录日志，你可以中断，你也可以继续
+				repo.l.Error("缓存自定义标签失败",
+					logger.Error(err),
+					logger.Int64("uid", tag.Uid))
+				continue
+			}
+		}
+		if len(tags) < batch {
+			return nil
+		}
+		offset += batch
+	}
 }
 
 func (repo *CachedTagRepository) CreateTag(ctx context.Context, tag domain.Tag) (int64, error) {
