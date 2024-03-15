@@ -1,0 +1,14 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/ebook_tag"
+
+grpc:
+  server:
+    port: 8099
+    etcdTTL: 60
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+redis:
+  addr: "localhost:16379"

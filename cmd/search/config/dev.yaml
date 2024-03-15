@@ -1,0 +1,11 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/ebook_search"
+
+grpc:
+  server:
+    port: 8098
+    etcdTTL: 60
+
+etcd:
+  endpoints:
+    - "localhost:12379"
