@@ -64,9 +64,10 @@ func (s *tagService) GetBizTags(ctx context.Context, uid int64, biz string, bizI
 	return s.repo.GetBizTags(ctx, uid, biz, bizId)
 }
 
-func NewTagService(repo repository.TagRepository, l logger.Logger) TagService {
+func NewTagService(repo repository.TagRepository, producer events.Producer, l logger.Logger) TagService {
 	return &tagService{
-		repo: repo,
-		l:    l,
+		producer: producer,
+		repo:     repo,
+		l:        l,
 	}
 }
