@@ -57,11 +57,11 @@ func (c *TagConsumer) Consume(sg *sarama.ConsumerMessage,
 	evt TagEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	return c.syncSvc.InputTag(ctx, c.toDomain(evt))
+	return c.syncSvc.InputBizTags(ctx, c.toDomain(evt))
 }
 
-func (c *TagConsumer) toDomain(event TagEvent) domain.Tag {
-	return domain.Tag{
+func (c *TagConsumer) toDomain(event TagEvent) domain.BizTags {
+	return domain.BizTags{
 		Uid:   event.Uid,
 		Biz:   event.Biz,
 		BizId: event.BizId,

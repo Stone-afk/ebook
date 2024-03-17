@@ -13,7 +13,7 @@ type syncService struct {
 	anyRepo     repository.AnyRepository
 }
 
-func (s *syncService) InputTag(ctx context.Context, tag domain.BizTags) error {
+func (s *syncService) InputBizTags(ctx context.Context, tag domain.BizTags) error {
 	return s.tagRepo.InputTag(ctx, tag)
 }
 

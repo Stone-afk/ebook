@@ -11,9 +11,9 @@ type articleSearchService struct {
 	articleRepo repository.ArticleRepository
 }
 
-func (s *searchService) SearchArticle(ctx context.Context, uid int64, expression string) (domain.SearchResult, error) {
+func (s *searchService) SearchArticle(ctx context.Context, uid int64, expression string) (domain.SearchArticleResult, error) {
 	keywords := strings.Split(expression, " ")
-	var res domain.SearchResult
+	var res domain.SearchArticleResult
 	arts, err := s.articleRepo.SearchArticle(ctx, uid, keywords)
 	res.Articles = arts
 	return res, err

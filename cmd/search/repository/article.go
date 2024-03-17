@@ -18,6 +18,7 @@ func (repo *articleRepository) InputArticle(ctx context.Context, msg domain.Arti
 		Title:   msg.Title,
 		Status:  msg.Status,
 		Content: msg.Content,
+		Tags:    msg.Tags,
 	})
 }
 
