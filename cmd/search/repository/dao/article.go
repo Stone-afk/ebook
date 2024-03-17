@@ -16,7 +16,7 @@ type ArticleElasticDAO struct {
 func (dao *ArticleElasticDAO) InputArticle(ctx context.Context, article Article) error {
 	_, err := dao.client.Index().Index(ArticleIndexName).
 		// 为什么要指定 ID？
-		// 确保后面文章更新的时候，我们这里产生类似的两条数据，而是更新了数据
+		// 防止后面文章更新的时候，这里产生类似的两条数据，而是更新了数据
 		Id(strconv.FormatInt(article.Id, 10)).
 		BodyJson(article).Do(ctx)
 	return err

@@ -21,7 +21,7 @@ type User struct {
 
 const TagIndexName = "tags_index"
 
-type Tag struct {
+type BizTags struct {
 	Uid   int64  `json:"uid"`
 	Biz   string `json:"biz"`
 	BizId int64  `json:"biz_id"`

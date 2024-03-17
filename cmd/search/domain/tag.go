@@ -1,6 +1,6 @@
 package domain
 
-type Tag struct {
+type BizTags struct {
 	Uid   int64
 	Biz   string
 	BizId int64

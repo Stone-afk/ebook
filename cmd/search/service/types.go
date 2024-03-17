@@ -22,7 +22,7 @@ type UserSearchService interface {
 }
 
 type SyncService interface {
-	InputTag(ctx context.Context, tag domain.Tag) error
+	InputTag(ctx context.Context, tag domain.BizTags) error
 	InputArticle(ctx context.Context, article domain.Article) error
 	InputUser(ctx context.Context, user domain.User) error
 	InputAny(ctx context.Context, index, docID, data string) error
