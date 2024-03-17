@@ -3,8 +3,8 @@ package dao
 import "context"
 
 type TagDAO interface {
-	InputTag(ctx context.Context, tag Tag) error
-	Search(ctx context.Context, uid int64, biz string, keywords []string) ([]Tag, error)
+	InputTag(ctx context.Context, tag BizTags) error
+	Search(ctx context.Context, uid int64, biz string, keywords []string) ([]BizTags, error)
 }
 
 type UserDAO interface {

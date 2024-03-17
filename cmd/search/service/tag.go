@@ -4,15 +4,19 @@ import (
 	"context"
 	"ebook/cmd/search/domain"
 	"ebook/cmd/search/repository"
+	"strings"
 )
 
 type tagSearchService struct {
 	tagRepo repository.TagRepository
 }
 
-func (t tagSearchService) Search(ctx context.Context, uid int64, biz string, expression string) (domain.SearchResult, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *tagSearchService) Search(ctx context.Context, uid int64, biz string, expression string) (domain.SearchResult, error) {
+	keywords := strings.Split(expression, " ")
+	var res domain.SearchResult
+	tags, err := s.tagRepo.SearchTag(ctx, uid, biz, keywords)
+	res.BizTags = tags
+	return res, err
 }
 
 func NewTagSearchService(tagRepo repository.TagRepository) TagService {

@@ -13,9 +13,8 @@ type syncService struct {
 	anyRepo     repository.AnyRepository
 }
 
-func (s *syncService) InputTag(ctx context.Context, tag domain.Tag) error {
-	//TODO implement me
-	panic("implement me")
+func (s *syncService) InputTag(ctx context.Context, tag domain.BizTags) error {
+	return s.tagRepo.InputTag(ctx, tag)
 }
 
 func (s *syncService) InputArticle(ctx context.Context, article domain.Article) error {
