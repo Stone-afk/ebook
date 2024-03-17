@@ -11,8 +11,8 @@ type tagRepository struct {
 	dao dao.TagDAO
 }
 
-func (repo *tagRepository) InputTag(ctx context.Context, msg domain.BizTags) error {
-	return repo.dao.InputTag(ctx, dao.BizTags{
+func (repo *tagRepository) InputBizTags(ctx context.Context, msg domain.BizTags) error {
+	return repo.dao.InputBizTags(ctx, dao.BizTags{
 		Uid:   msg.Uid,
 		Biz:   msg.Biz,
 		BizId: msg.BizId,

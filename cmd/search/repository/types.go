@@ -20,6 +20,6 @@ type ArticleRepository interface {
 }
 
 type TagRepository interface {
-	InputTag(ctx context.Context, msg domain.BizTags) error
+	InputBizTags(ctx context.Context, tag domain.BizTags) error
 	SearchTag(ctx context.Context, uid int64, biz string, keywords []string) ([]domain.BizTags, error)
 }
