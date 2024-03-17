@@ -1,7 +1,6 @@
 package dao
 
 const ArticleIndexName = "article_index"
-const TagIndexName = "tags_index"
 
 type Article struct {
 	Id      int64    `json:"id"`
@@ -18,4 +17,14 @@ type User struct {
 	Email    string `json:"email"`
 	Nickname string `json:"nickname"`
 	Phone    string `json:"phone"`
+}
+
+const TagIndexName = "tags_index"
+
+type Tag struct {
+	Uid   int64  `json:"uid"`
+	Biz   string `json:"biz"`
+	BizId int64  `json:"biz_id"`
+	// 只传递 string
+	Tags []string `json:"tags"`
 }

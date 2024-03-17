@@ -7,9 +7,15 @@ import (
 )
 
 type syncService struct {
+	tagRepo     repository.TagRepository
 	userRepo    repository.UserRepository
 	articleRepo repository.ArticleRepository
 	anyRepo     repository.AnyRepository
+}
+
+func (s *syncService) InputTag(ctx context.Context, tag domain.Tag) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (s *syncService) InputArticle(ctx context.Context, article domain.Article) error {

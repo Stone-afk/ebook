@@ -8,38 +8,6 @@ import (
 	"strings"
 )
 
-type userSearchService struct {
-	userRepo repository.UserRepository
-}
-
-func (s *searchService) SearchUser(ctx context.Context, expression string) (domain.SearchResult, error) {
-	keywords := strings.Split(expression, " ")
-	var res domain.SearchResult
-	users, err := s.userRepo.SearchUser(ctx, keywords)
-	res.Users = users
-	return res, err
-}
-
-func NewUserSearchService(userRepo repository.UserRepository) UserSearchService {
-	return &searchService{userRepo: userRepo}
-}
-
-type articleSearchService struct {
-	articleRepo repository.ArticleRepository
-}
-
-func (s *searchService) SearchArticle(ctx context.Context, uid int64, expression string) (domain.SearchResult, error) {
-	keywords := strings.Split(expression, " ")
-	var res domain.SearchResult
-	arts, err := s.articleRepo.SearchArticle(ctx, uid, keywords)
-	res.Articles = arts
-	return res, err
-}
-
-func NewArticleSearchService(articleRepo repository.ArticleRepository) ArticleSearchService {
-	return &searchService{articleRepo: articleRepo}
-}
-
 type searchService struct {
 	userRepo    repository.UserRepository
 	articleRepo repository.ArticleRepository
