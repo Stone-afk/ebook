@@ -5,10 +5,6 @@ import (
 	"ebook/cmd/search/repository/dao"
 )
 
-type AnyRepository interface {
-	Input(ctx context.Context, index string, docID string, data string) error
-}
-
 type anyRepository struct {
 	dao dao.AnyDAO
 }
