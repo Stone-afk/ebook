@@ -13,3 +13,7 @@ etcd:
 kafka:
   addrs:
     - "localhost:9094"
+
+es:
+  urls: "https://localhost:9200"
+  sniff: false
