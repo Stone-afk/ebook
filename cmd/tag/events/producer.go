@@ -7,23 +7,7 @@ import (
 	"github.com/IBM/sarama"
 )
 
-type BizTags struct {
-	Uid   int64  `json:"uid"`
-	Biz   string `json:"biz"`
-	BizId int64  `json:"biz_id"`
-	// 只传递 string
-	Tags []string `json:"tags"`
-}
-
-type SyncDataEvent struct {
-	IndexName string
-	DocID     string
-	Data      string
-}
-
-type Producer interface {
-	ProduceSyncEvent(ctx context.Context, data BizTags) error
-}
+const topicSyncData = "sync_data_event"
 
 type SaramaSyncProducer struct {
 	client sarama.SyncProducer
@@ -50,7 +34,7 @@ func (p *SaramaSyncProducer) ProduceSyncEvent(ctx context.Context, tags BizTags)
 	}
 	data, _ := json.Marshal(evt)
 	_, _, err := p.client.SendMessage(&sarama.ProducerMessage{
-		Topic: "search_sync_data",
+		Topic: topicSyncData,
 		Value: sarama.ByteEncoder(data),
 	})
 	return err

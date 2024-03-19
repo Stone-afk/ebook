@@ -8,16 +8,11 @@ import (
 
 const topicReadEvent = "article_read_event"
 
-type Producer interface {
-	ProduceReadEvent(ctx context.Context, evt ReadEvent) error
-	//ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error
-}
-
 type KafkaProducer struct {
 	producer sarama.SyncProducer
 }
 
-func NewKafkaProducer(pc sarama.SyncProducer) Producer {
+func NewKafkaProducer(pc sarama.SyncProducer) ReadEventProducer {
 	return &KafkaProducer{
 		producer: pc,
 	}
