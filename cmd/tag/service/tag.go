@@ -39,18 +39,23 @@ func (s *tagService) AttachTags(ctx context.Context, uid int64, biz string, bizI
 		// 同样要注意顺序，即同一个用户对同一个资源打标签的顺序，
 		// 是不能乱的
 		pctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		er = s.producer.ProduceSyncEvent(pctx, events.BizTags{
+		tagEvt := events.BizTags{
 			Uid:   uid,
 			Biz:   biz,
 			BizId: bizId,
 			Tags: slice.Map(ts, func(idx int, src domain.Tag) string {
 				return src.Name
 			}),
-		})
+		}
+		er = s.producer.ProduceSyncEvent(pctx, tagEvt)
 		cancel()
 		if er != nil {
-			// 记录日志
-			s.l.Error("同步 kafka 事件消息失败", logger.Error(er))
+			s.l.Error("ProduceSyncEvent 同步 kafka 事件消息失败", logger.Error(er))
+			er = s.producer.ProduceStandardSyncEvent(pctx, tagEvt)
+			if er != nil {
+				// 记录日志
+				s.l.Error("ProduceStandardSyncEvent 同步 kafka 事件消息失败", logger.Error(er))
+			}
 		}
 	}()
 	return err

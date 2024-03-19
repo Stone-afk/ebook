@@ -23,7 +23,19 @@ func NewSaramaProducer(client sarama.Client) (*SaramaSyncProducer, error) {
 	}, nil
 }
 
-func (p *SaramaSyncProducer) ProduceSyncEvent(ctx context.Context, tags BizTags) error {
+func (p *SaramaSyncProducer) ProduceSyncEvent(ctx context.Context, evt BizTags) error {
+	data, err := json.Marshal(evt)
+	if err != nil {
+		return err
+	}
+	_, _, err = p.client.SendMessage(&sarama.ProducerMessage{
+		Topic: topicSyncData,
+		Value: sarama.ByteEncoder(data),
+	})
+	return err
+}
+
+func (p *SaramaSyncProducer) ProduceStandardSyncEvent(ctx context.Context, tags BizTags) error {
 	tdata, _ := json.Marshal(tags)
 	evt := SyncDataEvent{
 		IndexName: "tags_index",
