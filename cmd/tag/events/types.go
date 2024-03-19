@@ -18,4 +18,5 @@ type BizTags struct {
 
 type Producer interface {
 	ProduceSyncEvent(ctx context.Context, data BizTags) error
+	ProduceStandardSyncEvent(ctx context.Context, data BizTags) error
 }
