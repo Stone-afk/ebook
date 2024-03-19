@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const topicReadEvent = "article_read_event"
+
 var _ saramax.Consumer = &InteractiveReadEventConsumer{}
 
 type InteractiveReadEventConsumer struct {
@@ -37,7 +39,7 @@ func (r *InteractiveReadEventConsumer) Start() error {
 	go func() {
 		err = cg.Consume(
 			context.Background(),
-			[]string{"read_article"}, saramax.NewHandler[ReadEvent](r.l, r.Consume))
+			[]string{topicReadEvent}, saramax.NewHandler[ReadEvent](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出了消费循环异常", logger.Error(err))
 		}
@@ -52,7 +54,7 @@ func (r *InteractiveReadEventConsumer) StartBatch() error {
 	}
 	go func() {
 		err = cg.Consume(context.Background(),
-			[]string{"read_article"}, saramax.NewBatchHandler[ReadEvent](r.l, r.BatchConsume))
+			[]string{topicReadEvent}, saramax.NewBatchHandler[ReadEvent](r.l, r.BatchConsume))
 		if err != nil {
 			r.l.Error("线程退出消费, 循环异常", logger.Error(err))
 		}

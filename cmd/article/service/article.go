@@ -17,14 +17,14 @@ type articleService struct {
 	// 2. 在 repo 里面处理制作库和线上库
 	// 1 和 2 是互斥的，不会同时存在
 	repo     repository.ArticleRepository
-	producer events.Producer
+	producer events.ReadEventProducer
 	log      logger.Logger
 
 	ch chan readInfo
 }
 
 func NewArticleService(repo repository.ArticleRepository,
-	producer events.Producer, l logger.Logger) ArticleService {
+	producer events.ReadEventProducer, l logger.Logger) ArticleService {
 	return &articleService{
 		repo:     repo,
 		log:      l,
@@ -82,7 +82,7 @@ type readInfo struct {
 func NewArticleServiceV1(
 	authorRepo repository.ArticleAuthorRepository,
 	readerRepo repository.ArticleReaderRepository,
-	producer events.Producer,
+	producer events.ReadEventProducer,
 	l logger.Logger) ArticleService {
 	return &articleService{
 		authorRepo: authorRepo,
