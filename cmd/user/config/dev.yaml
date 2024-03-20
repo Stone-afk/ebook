@@ -12,3 +12,7 @@ grpc:
     #    要注意，拆分出来之后有很多服务，都会占用端口，小心端口冲突。
     port: 8095
     etcdTTL: 60
+
+kafka:
+  addrs:
+    - "localhost:9094"
