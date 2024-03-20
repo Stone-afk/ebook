@@ -33,5 +33,4 @@ type ReadEventProducer interface {
 type SyncSearchEventProducer interface {
 	ProduceStandardSyncEvent(ctx context.Context, evt ArticleEvent) error
 	ProduceSyncEvent(ctx context.Context, evt ArticleEvent) error
-	//ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error
 }
