@@ -62,6 +62,6 @@ message User {
 message BizTags {
   int64 uid = 1;
   string biz = 2;
-  string bizid = 3;
+  int64 bizid = 3;
   repeated string tags = 4;
 }
