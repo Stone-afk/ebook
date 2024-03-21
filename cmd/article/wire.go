@@ -29,6 +29,7 @@ func Init() *appx.App {
 	wire.Build(
 		thirdProvider,
 		events.NewKafkaProducer,
+		events.NewSaramaSyncProducer,
 		cache.NewRedisArticleCache,
 		dao.NewGORMArticleDAO,
 		repository.NewArticleRepository,

@@ -32,8 +32,9 @@ func Init() *appx.App {
 	articleRepository := repository.NewArticleRepository(articleDAO, articleCache, userServiceClient, logger)
 	saramaClient := ioc.InitKafka()
 	syncProducer := ioc.NewSyncProducer(saramaClient)
-	producer := events.NewKafkaProducer(syncProducer)
-	articleService := service.NewArticleService(articleRepository, producer, logger)
+	readEventProducer := events.NewKafkaProducer(syncProducer)
+	syncSearchEventProducer := events.NewSaramaSyncProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, readEventProducer, syncSearchEventProducer, logger)
 	articleServiceServer := grpc.NewArticleServiceServer(articleService)
 	server := ioc.InitGRPCxServer(articleServiceServer, client, logger)
 	app := &appx.App{
