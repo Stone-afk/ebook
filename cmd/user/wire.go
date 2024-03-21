@@ -4,6 +4,7 @@ package main
 
 import (
 	"ebook/cmd/pkg/appx"
+	"ebook/cmd/user/events"
 	"ebook/cmd/user/grpc"
 	"ebook/cmd/user/ioc"
 	"ebook/cmd/user/repository"
@@ -18,12 +19,15 @@ var thirdProvider = wire.NewSet(
 	ioc.InitDB,
 	ioc.InitRedis,
 	ioc.InitEtcdClient,
+	ioc.InitKafka,
+	ioc.NewSyncProducer,
 )
 
 //go:generate wire
 func Init() *appx.App {
 	wire.Build(
 		thirdProvider,
+		events.NewSaramaSyncProducer,
 		cache.NewRedisUserCache,
 		dao.NewGORMUserDAO,
 		repository.NewUserRepository,

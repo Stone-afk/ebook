@@ -8,6 +8,7 @@ package main
 
 import (
 	"ebook/cmd/pkg/appx"
+	"ebook/cmd/user/events"
 	"ebook/cmd/user/grpc"
 	"ebook/cmd/user/ioc"
 	"ebook/cmd/user/repository"
@@ -21,16 +22,19 @@ import (
 
 //go:generate wire
 func Init() *appx.App {
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	syncSearchEventProducer := events.NewSaramaSyncProducer(syncProducer)
 	logger := ioc.InitLogger()
 	db := ioc.InitDB(logger)
 	userDAO := dao.NewGORMUserDAO(db)
 	cmdable := ioc.InitRedis()
 	userCache := cache.NewRedisUserCache(cmdable)
 	userRepository := repository.NewUserRepository(userDAO, userCache)
-	userService := service.NewUserService(userRepository, logger)
+	userService := service.NewUserService(syncSearchEventProducer, userRepository, logger)
 	userServiceServer := grpc.NewUserServiceServer(userService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxServer(userServiceServer, client, logger)
+	clientv3Client := ioc.InitEtcdClient()
+	server := ioc.InitGRPCxServer(userServiceServer, clientv3Client, logger)
 	app := &appx.App{
 		GRPCServer: server,
 	}
@@ -39,4 +43,4 @@ func Init() *appx.App {
 
 // wire.go:
 
-var thirdProvider = wire.NewSet(ioc.InitLogger, ioc.InitDB, ioc.InitRedis, ioc.InitEtcdClient)
+var thirdProvider = wire.NewSet(ioc.InitLogger, ioc.InitDB, ioc.InitRedis, ioc.InitEtcdClient, ioc.InitKafka, ioc.NewSyncProducer)
