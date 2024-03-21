@@ -120,7 +120,7 @@ func (svc *articleService) GetPublishedById(ctx context.Context, id, userId int6
 					Aid: id,
 				})
 			if er != nil {
-				svc.log.Error("发送读者阅读事件失败")
+				svc.log.Error("发送读者阅读事件失败", logger.Error(er))
 			}
 		}()
 	}
@@ -140,20 +140,7 @@ func (svc *articleService) Withdraw(ctx context.Context, uid, id int64) error {
 			if err != nil {
 				svc.log.Error(fmt.Sprintf("发送同步搜索文章事件失败: 查询文章出错 %s", err.Error()))
 			} else {
-				evt := events.ArticleEvent{
-					Id:      id,
-					Title:   art.Title,
-					Status:  int32(domain.ArticleStatusPrivate),
-					Content: art.Content,
-				}
-				er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
-				if er != nil {
-					svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
-					er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
-					if er != nil {
-						svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
-					}
-				}
+				svc.sendSyncEventToSearch(ctx, art)
 			}
 		}()
 	}
@@ -169,20 +156,7 @@ func (svc *articleService) Save(ctx context.Context, art domain.Article) (int64,
 	artId, err := svc.repo.Create(ctx, art)
 	if err == nil {
 		go func() {
-			evt := events.ArticleEvent{
-				Id:      artId,
-				Title:   art.Title,
-				Status:  int32(art.Status),
-				Content: art.Content,
-			}
-			er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
-			if er != nil {
-				svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
-				er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
-				if er != nil {
-					svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
-				}
-			}
+			svc.sendSyncEventToSearch(ctx, art)
 		}()
 	}
 	return artId, err
@@ -194,23 +168,27 @@ func (svc *articleService) Publish(ctx context.Context,
 	artId, err := svc.repo.Sync(ctx, art)
 	if err == nil {
 		go func() {
-			evt := events.ArticleEvent{
-				Id:      artId,
-				Title:   art.Title,
-				Status:  int32(art.Status),
-				Content: art.Content,
-			}
-			er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
-			if er != nil {
-				svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
-				er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
-				if er != nil {
-					svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
-				}
-			}
+			svc.sendSyncEventToSearch(ctx, art)
 		}()
 	}
 	return artId, err
+}
+
+func (svc *articleService) sendSyncEventToSearch(ctx context.Context, art domain.Article) {
+	evt := events.ArticleEvent{
+		Id:      art.Id,
+		Title:   art.Title,
+		Status:  int32(art.Status),
+		Content: art.Content,
+	}
+	er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
+	if er != nil {
+		svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败", logger.Error(er))
+		er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
+		if er != nil {
+			svc.log.Error("ProduceStandardSyncEvent 发送同步搜索文章事件失败", logger.Error(er))
+		}
+	}
 }
 
 // PublishV1 基于使用两种 repository 的写法

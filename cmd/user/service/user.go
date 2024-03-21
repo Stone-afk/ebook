@@ -4,19 +4,22 @@ import (
 	"context"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/user/domain"
+	"ebook/cmd/user/events"
 	"ebook/cmd/user/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type userService struct {
-	repo repository.UserRepository
-	l    logger.Logger
+	producer events.SyncSearchEventProducer
+	repo     repository.UserRepository
+	l        logger.Logger
 }
 
-func NewUserService(repo repository.UserRepository, l logger.Logger) UserService {
+func NewUserService(producer events.SyncSearchEventProducer, repo repository.UserRepository, l logger.Logger) UserService {
 	return &userService{
-		repo: repo,
-		l:    l,
+		producer: producer,
+		repo:     repo,
+		l:        l,
 	}
 }
 
@@ -63,8 +66,31 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 	if err != nil && err != repository.ErrUserDuplicate {
 		return domain.User{}, err
 	}
+	u, err = svc.repo.FindByPhone(ctx, phone)
+	if err == nil {
+		go func() {
+			svc.sendSyncEventToSearch(ctx, u)
+		}()
+	}
 	// 主从模式下，这里要从主库中读取，暂时我们不需要考虑
-	return svc.repo.FindByPhone(ctx, phone)
+	return u, err
+}
+
+func (svc *userService) sendSyncEventToSearch(ctx context.Context, u domain.User) {
+	evt := events.UserEvent{
+		Id:       u.Id,
+		Email:    u.Email,
+		Phone:    u.Phone,
+		Nickname: u.Nickname,
+	}
+	er := svc.producer.ProduceSyncEvent(ctx, evt)
+	if er != nil {
+		svc.l.Error("ProduceSyncEvent 发送同步搜索用户事件失败", logger.Error(er))
+		er = svc.producer.ProduceStandardSyncEvent(ctx, evt)
+		if er != nil {
+			svc.l.Error("ProduceStandardSyncEvent 发送同步搜索用户事件失败", logger.Error(er))
+		}
+	}
 }
 
 func (svc *userService) FindOrCreateByWechat(ctx context.Context, wechatInfo domain.WechatInfo) (domain.User, error) {
@@ -78,7 +104,13 @@ func (svc *userService) FindOrCreateByWechat(ctx context.Context, wechatInfo dom
 		return u, err
 	}
 	// 因为这里会遇到主从延迟的问题
-	return svc.repo.FindByWechat(ctx, wechatInfo.OpenId)
+	u, err = svc.repo.FindByWechat(ctx, wechatInfo.OpenId)
+	if err == nil {
+		go func() {
+			svc.sendSyncEventToSearch(ctx, u)
+		}()
+	}
+	return u, err
 }
 
 func (svc *userService) Login(ctx context.Context, email, password string) (domain.User, error) {
