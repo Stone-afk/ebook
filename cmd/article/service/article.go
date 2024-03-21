@@ -6,6 +6,7 @@ import (
 	"ebook/cmd/article/events"
 	"ebook/cmd/article/repository"
 	"ebook/cmd/pkg/logger"
+	"fmt"
 	"time"
 )
 
@@ -16,19 +17,23 @@ type articleService struct {
 
 	// 2. 在 repo 里面处理制作库和线上库
 	// 1 和 2 是互斥的，不会同时存在
-	repo     repository.ArticleRepository
-	producer events.ReadEventProducer
-	log      logger.Logger
+	repo                    repository.ArticleRepository
+	readEventProducer       events.ReadEventProducer
+	syncSearchEventProducer events.SyncSearchEventProducer
+	log                     logger.Logger
 
 	ch chan readInfo
 }
 
 func NewArticleService(repo repository.ArticleRepository,
-	producer events.ReadEventProducer, l logger.Logger) ArticleService {
+	readEventProducer events.ReadEventProducer,
+	syncSearchEventProducer events.SyncSearchEventProducer,
+	l logger.Logger) ArticleService {
 	return &articleService{
-		repo:     repo,
-		log:      l,
-		producer: producer,
+		repo:                    repo,
+		log:                     l,
+		readEventProducer:       readEventProducer,
+		syncSearchEventProducer: syncSearchEventProducer,
 	}
 }
 
@@ -85,10 +90,10 @@ func NewArticleServiceV1(
 	producer events.ReadEventProducer,
 	l logger.Logger) ArticleService {
 	return &articleService{
-		authorRepo: authorRepo,
-		readerRepo: readerRepo,
-		log:        l,
-		producer:   producer,
+		authorRepo:        authorRepo,
+		readerRepo:        readerRepo,
+		log:               l,
+		readEventProducer: producer,
 	}
 }
 
@@ -106,7 +111,7 @@ func (svc *articleService) GetPublishedById(ctx context.Context, id, userId int6
 	if err == nil {
 		go func() {
 			// 生产者也可以通过改批量来提高性能
-			er := svc.producer.ProduceReadEvent(
+			er := svc.readEventProducer.ProduceReadEvent(
 				ctx,
 				events.ReadEvent{
 					// 即便你的消费者要用 art 的里面的数据，
@@ -114,7 +119,7 @@ func (svc *articleService) GetPublishedById(ctx context.Context, id, userId int6
 					Uid: userId,
 					Aid: id,
 				})
-			if er == nil {
+			if er != nil {
 				svc.log.Error("发送读者阅读事件失败")
 			}
 		}()
@@ -128,7 +133,31 @@ func (svc *articleService) List(ctx context.Context, authorId int64, offset, lim
 
 func (svc *articleService) Withdraw(ctx context.Context, uid, id int64) error {
 	// art.Status = domain.ArticleStatusPrivate 然后直接把整个 art 往下传
-	return svc.repo.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
+	err := svc.repo.SyncStatus(ctx, uid, id, domain.ArticleStatusPrivate)
+	if err == nil {
+		go func() {
+			art, err := svc.repo.GetById(ctx, id)
+			if err != nil {
+				svc.log.Error(fmt.Sprintf("发送同步搜索文章事件失败: 查询文章出错 %s", err.Error()))
+			} else {
+				evt := events.ArticleEvent{
+					Id:      id,
+					Title:   art.Title,
+					Status:  int32(domain.ArticleStatusPrivate),
+					Content: art.Content,
+				}
+				er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
+				if er != nil {
+					svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
+					er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
+					if er != nil {
+						svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
+					}
+				}
+			}
+		}()
+	}
+	return err
 }
 
 func (svc *articleService) Save(ctx context.Context, art domain.Article) (int64, error) {
@@ -137,13 +166,51 @@ func (svc *articleService) Save(ctx context.Context, art domain.Article) (int64,
 		err := svc.repo.Update(ctx, art)
 		return art.Id, err
 	}
-	return svc.repo.Create(ctx, art)
+	artId, err := svc.repo.Create(ctx, art)
+	if err == nil {
+		go func() {
+			evt := events.ArticleEvent{
+				Id:      artId,
+				Title:   art.Title,
+				Status:  int32(art.Status),
+				Content: art.Content,
+			}
+			er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
+			if er != nil {
+				svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
+				er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
+				if er != nil {
+					svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
+				}
+			}
+		}()
+	}
+	return artId, err
 }
 
 func (svc *articleService) Publish(ctx context.Context,
 	art domain.Article) (int64, error) {
 	art.Status = domain.ArticleStatusPublished
-	return svc.repo.Sync(ctx, art)
+	artId, err := svc.repo.Sync(ctx, art)
+	if err == nil {
+		go func() {
+			evt := events.ArticleEvent{
+				Id:      artId,
+				Title:   art.Title,
+				Status:  int32(art.Status),
+				Content: art.Content,
+			}
+			er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
+			if er != nil {
+				svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
+				er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
+				if er != nil {
+					svc.log.Error("ProduceSyncEvent 发送同步搜索文章事件失败")
+				}
+			}
+		}()
+	}
+	return artId, err
 }
 
 // PublishV1 基于使用两种 repository 的写法
