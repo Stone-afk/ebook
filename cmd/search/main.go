@@ -1,4 +1,4 @@
-package search
+package main
 
 import (
 	"fmt"
@@ -6,6 +6,21 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
+
+func main() {
+	initViperWatch()
+	app := Init()
+	for _, c := range app.Consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	err := app.GRPCServer.Serve()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func initViperWatch() {
 	cfile := pflag.String("config",

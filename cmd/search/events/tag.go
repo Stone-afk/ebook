@@ -28,8 +28,8 @@ type TagConsumer struct {
 
 func NewTagConsumer(client sarama.Client,
 	l logger.Logger,
-	svc service.SyncService) *ArticleConsumer {
-	return &ArticleConsumer{
+	svc service.SyncService) *TagConsumer {
+	return &TagConsumer{
 		syncSvc: svc,
 		client:  client,
 		l:       l,
