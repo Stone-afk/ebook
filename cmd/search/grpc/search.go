@@ -7,37 +7,17 @@ import (
 	"ebook/cmd/search/service"
 	"github.com/ecodeclub/ekit/slice"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type SearchServiceServer struct {
 	searchv1.UnimplementedSearchServiceServer
-	searchv1.UnimplementedArticleSearchServiceServer
-	searchv1.UnimplementedTagSearchServiceServer
-	searchv1.UnimplementedUserSearchServiceServer
-	searchService  service.SearchService
-	userService    service.UserSearchService
-	articleService service.ArticleSearchService
-	tagService     service.TagService
-}
-
-func (s *SearchServiceServer) SearchUser(ctx context.Context, request *searchv1.UserSearchRequest) (*searchv1.UserSearchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SearchUser not implemented")
-}
-
-func (s *SearchServiceServer) SearchBizTags(ctx context.Context, request *searchv1.BizTagsSearchRequest) (*searchv1.BizTagsSearchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SearchBizTags not implemented")
-}
-
-func (s *SearchServiceServer) SearchArticle(ctx context.Context, request *searchv1.ArticleSearchRequest) (*searchv1.ArticleSearchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SearchArticle not implemented")
+	searchService service.SearchService
 }
 
 func (s *SearchServiceServer) Search(ctx context.Context, request *searchv1.SearchRequest) (*searchv1.SearchResponse, error) {
 	resp, err := s.searchService.Search(ctx, request.Uid, request.Expression)
 	if err != nil {
-		return nil, err
+		return &searchv1.SearchResponse{}, err
 	}
 	return &searchv1.SearchResponse{
 		User: &searchv1.UserResult{
@@ -50,18 +30,17 @@ func (s *SearchServiceServer) Search(ctx context.Context, request *searchv1.Sear
 				return articleConvertToView(src)
 			}),
 		},
+		BizTags: &searchv1.BizTagsResult{
+			Mutibiztags: slice.Map(resp.BizTags, func(idx int, src domain.BizTags) *searchv1.BizTags {
+				return bizTagsConvertToView(src)
+			}),
+		},
 	}, nil
 }
 
-func NewSearchService(searchService service.SearchService,
-	userService service.UserSearchService,
-	articleService service.ArticleSearchService,
-	tagService service.TagService) *SearchServiceServer {
+func NewSearchServiceServer(searchService service.SearchService) *SearchServiceServer {
 	return &SearchServiceServer{
-		searchService:  searchService,
-		userService:    userService,
-		articleService: articleService,
-		tagService:     tagService,
+		searchService: searchService,
 	}
 }
 

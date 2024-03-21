@@ -14,7 +14,7 @@ type syncService struct {
 }
 
 func (s *syncService) InputBizTags(ctx context.Context, tag domain.BizTags) error {
-	return s.tagRepo.InputTag(ctx, tag)
+	return s.tagRepo.InputBizTags(ctx, tag)
 }
 
 func (s *syncService) InputArticle(ctx context.Context, article domain.Article) error {

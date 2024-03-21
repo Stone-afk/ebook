@@ -52,7 +52,7 @@ func (c *SyncDataEventConsumer) Consume(sg *sarama.ConsumerMessage,
 	return c.svc.InputAny(ctx, evt.IndexName, evt.DocID, evt.Data)
 }
 
-func NewSyncDataEventConsumer(svc service.SyncService, client sarama.Client, l logger.Logger) saramax.Consumer {
+func NewSyncDataEventConsumer(svc service.SyncService, client sarama.Client, l logger.Logger) *SyncDataEventConsumer {
 	return &SyncDataEventConsumer{
 		svc:    svc,
 		client: client,

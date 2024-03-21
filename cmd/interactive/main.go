@@ -21,10 +21,16 @@ func main() {
 	}
 	go func() {
 		err := app.webAdmin.Start()
-		log.Println(err)
+		if err != nil {
+			log.Println(err)
+			panic(err)
+		}
 	}()
 	err := app.server.Serve()
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+		panic(err)
+	}
 }
 
 func initViperWatch() {

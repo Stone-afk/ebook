@@ -36,7 +36,7 @@ message UserSearchRequest {
 }
 
 message UserSearchResponse {
-  UserResult user = 1;
+  repeated User users =1;
 }
 
 message ArticleSearchRequest {
@@ -45,7 +45,7 @@ message ArticleSearchRequest {
 }
 
 message ArticleSearchResponse {
-  ArticleResult article = 1;
+  repeated Article articles = 1;
 }
 
 message BizTagsSearchRequest {
@@ -55,7 +55,7 @@ message BizTagsSearchRequest {
 }
 
 message BizTagsSearchResponse {
-  BizTagsResult BizTags = 1;
+  repeated BizTags mutibiztags = 1;
 }
 
 message SearchRequest {
