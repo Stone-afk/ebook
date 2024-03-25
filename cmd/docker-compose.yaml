@@ -120,7 +120,7 @@ services:
       #      - 暴露了 canal 的端口，但是其实一般比较少直接跟 canal 打交道
       - 11111:11111
     volumes:
-      - ./script/canal/webook/instance.properties:/home/admin/canal-server/conf/webook/instance.properties
+      - ./script/canal/ebook/instance.properties:/home/admin/canal-server/conf/ebook/instance.properties
       - ./script/canal/canal.properties:/home/admin/canal-server/conf/canal.properties
 
 #  mongo-express:
