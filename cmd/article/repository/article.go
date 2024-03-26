@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type articleRepository struct {
+type CachedArticleRepository struct {
 	dao     dao.ArticleDAO
 	cache   cache.ArticleCache
 	userSvc userv1.UserServiceClient
@@ -26,11 +26,11 @@ type articleRepository struct {
 	l  logger.Logger
 }
 
-func NewArticleRepository(dao dao.ArticleDAO,
+func NewCachedArticleRepository(dao dao.ArticleDAO,
 	cache cache.ArticleCache,
 	userSvc userv1.UserServiceClient,
 	l logger.Logger) ArticleRepository {
-	return &articleRepository{
+	return &CachedArticleRepository{
 		userSvc: userSvc,
 		dao:     dao,
 		cache:   cache,
@@ -38,33 +38,37 @@ func NewArticleRepository(dao dao.ArticleDAO,
 	}
 }
 
-func NewArticleRepositoryV1(authorDAO dao.ArticleAuthorDAO,
+func NewCachedArticleRepositoryV1(authorDAO dao.ArticleAuthorDAO,
 	readerDAO dao.ArticleReaderDAO) ArticleRepository {
-	return &articleRepository{
+	return &CachedArticleRepository{
 		authorDAO: authorDAO,
 		readerDAO: readerDAO,
 	}
 }
 
-func NewArticleRepositoryV2(db *gorm.DB, l logger.Logger) ArticleRepository {
-	return &articleRepository{
+func NewCachedArticleRepositoryV2(db *gorm.DB, l logger.Logger) ArticleRepository {
+	return &CachedArticleRepository{
 		db: db,
 		l:  l,
 	}
 }
 
-func (repo *articleRepository) ListPub(ctx context.Context, uTime time.Time, offset int, limit int) ([]domain.Article, error) {
+func (repo *CachedArticleRepository) Cache() cache.ArticleCache {
+	return repo.cache
+}
+
+func (repo *CachedArticleRepository) ListPub(ctx context.Context, uTime time.Time, offset int, limit int) ([]domain.Article, error) {
 	val, err := repo.dao.ListPubByUtime(ctx, uTime, offset, limit)
 	if err != nil {
 		return nil, err
 	}
 	return slice.Map[dao.PublishedArticle, domain.Article](val, func(idx int, src dao.PublishedArticle) domain.Article {
 		// 偷懒写法
-		return repo.toDomain(dao.Article(src))
+		return repo.ToDomain(dao.Article(src))
 	}), nil
 }
 
-func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
+func (repo *CachedArticleRepository) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
 	res, err := repo.cache.GetPub(ctx, id)
 	if err == nil {
 		return res, err
@@ -100,7 +104,7 @@ func (repo *articleRepository) GetPublishedById(ctx context.Context, id int64) (
 	return res, nil
 }
 
-func (repo *articleRepository) GetById(ctx context.Context, id int64) (domain.Article, error) {
+func (repo *CachedArticleRepository) GetById(ctx context.Context, id int64) (domain.Article, error) {
 	art, err := repo.cache.Get(ctx, id)
 	if err != nil {
 		data, er := repo.dao.GetById(ctx, id)
@@ -108,12 +112,12 @@ func (repo *articleRepository) GetById(ctx context.Context, id int64) (domain.Ar
 			return domain.Article{}, err
 		}
 		repo.l.Error("查询缓存文章失败", logger.Int64("id", id), logger.Error(err))
-		return repo.toDomain(data), nil
+		return repo.ToDomain(data), nil
 	}
 	return art, nil
 }
 
-func (repo *articleRepository) List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error) {
+func (repo *CachedArticleRepository) List(ctx context.Context, authorId int64, offset, limit int) ([]domain.Article, error) {
 	// 只有第一页才走缓存，并且假定一页只有 100 条
 	// 也就是说，如果前端允许创作者调整页的大小
 	// 那么只有 100 这个页大小这个默认情况下，会走索引
@@ -137,7 +141,7 @@ func (repo *articleRepository) List(ctx context.Context, authorId int64, offset,
 	}
 	res := slice.Map[dao.Article, domain.Article](arts,
 		func(idx int, src dao.Article) domain.Article {
-			return repo.toDomain(src)
+			return repo.ToDomain(src)
 		})
 	// 提前准备文章内容详情的缓存  一般都是让调用者来控制是否异步。
 	go func() {
@@ -152,7 +156,7 @@ func (repo *articleRepository) List(ctx context.Context, authorId int64, offset,
 	return res, nil
 }
 
-func (repo *articleRepository) preCache(ctx context.Context, arts []domain.Article) {
+func (repo *CachedArticleRepository) preCache(ctx context.Context, arts []domain.Article) {
 	// 1MB
 	const contentSizeThreshold = 1024 * 1024
 	// 只缓存第一篇文章
@@ -164,7 +168,7 @@ func (repo *articleRepository) preCache(ctx context.Context, arts []domain.Artic
 	}
 }
 
-func (repo *articleRepository) SyncV2(ctx context.Context, art domain.Article) (int64, error) {
+func (repo *CachedArticleRepository) SyncV2(ctx context.Context, art domain.Article) (int64, error) {
 	tx := repo.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
 		return 0, tx.Error
@@ -202,7 +206,7 @@ func (repo *articleRepository) SyncV2(ctx context.Context, art domain.Article) (
 	return artn.Id, nil
 }
 
-func (repo *articleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
+func (repo *CachedArticleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
 	artn := repo.toEntity(art)
 	var (
 		id  = art.Id
@@ -224,7 +228,7 @@ func (repo *articleRepository) SyncV1(ctx context.Context, art domain.Article) (
 	return id, err
 }
 
-func (repo *articleRepository) Sync(ctx context.Context, art domain.Article) (int64, error) {
+func (repo *CachedArticleRepository) Sync(ctx context.Context, art domain.Article) (int64, error) {
 	id, err := repo.dao.Sync(ctx, repo.toEntity(art))
 	if err != nil {
 		return 0, err
@@ -232,19 +236,19 @@ func (repo *articleRepository) Sync(ctx context.Context, art domain.Article) (in
 	return id, nil
 }
 
-func (repo *articleRepository) SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error {
+func (repo *CachedArticleRepository) SyncStatus(ctx context.Context, uid, id int64, status domain.ArticleStatus) error {
 	return repo.dao.SyncStatus(ctx, uid, id, status.ToUint8())
 }
 
-func (repo *articleRepository) Update(ctx context.Context, art domain.Article) error {
+func (repo *CachedArticleRepository) Update(ctx context.Context, art domain.Article) error {
 	return repo.dao.UpdateById(ctx, repo.toEntity(art))
 }
 
-func (repo *articleRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
+func (repo *CachedArticleRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
 	return repo.dao.Insert(ctx, repo.toEntity(art))
 }
 
-func (repo *articleRepository) toEntity(art domain.Article) dao.Article {
+func (repo *CachedArticleRepository) toEntity(art domain.Article) dao.Article {
 	return dao.Article{
 		Id:       art.Id,
 		Title:    art.Title,
@@ -254,7 +258,7 @@ func (repo *articleRepository) toEntity(art domain.Article) dao.Article {
 	}
 }
 
-func (repo *articleRepository) toDomain(art dao.Article) domain.Article {
+func (repo *CachedArticleRepository) ToDomain(art dao.Article) domain.Article {
 	return domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,

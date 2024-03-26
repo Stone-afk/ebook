@@ -29,7 +29,7 @@ func Init() *appx.App {
 	articleCache := cache.NewRedisArticleCache(cmdable)
 	client := ioc.InitEtcdClient()
 	userServiceClient := ioc.InitUserClient(client)
-	articleRepository := repository.NewArticleRepository(articleDAO, articleCache, userServiceClient, logger)
+	articleRepository := repository.NewCachedArticleRepository(articleDAO, articleCache, userServiceClient, logger)
 	saramaClient := ioc.InitKafka()
 	syncProducer := ioc.NewSyncProducer(saramaClient)
 	readEventProducer := events.NewKafkaProducer(syncProducer)

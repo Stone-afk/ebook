@@ -41,6 +41,10 @@ func (r *RedisArticleCache) SetPub(ctx context.Context, art domain.Article) erro
 		time.Minute*30).Err()
 }
 
+func (r *RedisArticleCache) DelPub(ctx context.Context, id int64) error {
+	return r.client.Del(ctx, r.readerArtKey(id)).Err()
+}
+
 func (r *RedisArticleCache) Get(ctx context.Context, id int64) (domain.Article, error) {
 	// 可以直接使用 Bytes 方法来获得 []byte
 	data, err := r.client.Get(ctx, r.authorArtKey(id)).Bytes()
