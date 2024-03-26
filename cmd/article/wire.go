@@ -32,7 +32,7 @@ func Init() *appx.App {
 		events.NewSaramaSyncProducer,
 		cache.NewRedisArticleCache,
 		dao.NewGORMArticleDAO,
-		repository.NewArticleRepository,
+		repository.NewCachedArticleRepository,
 		service.NewArticleService,
 		grpc.NewArticleServiceServer,
 		ioc.InitGRPCxServer,

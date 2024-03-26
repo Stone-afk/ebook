@@ -23,4 +23,5 @@ type ArticleCache interface {
 	// SetPub 正常来说，创作者和读者的 Redis 集群要分开，因为读者是一个核心中的核心
 	SetPub(ctx context.Context, article domain.Article) error
 	GetPub(ctx context.Context, id int64) (domain.Article, error)
+	DelPub(ctx context.Context, id int64) error
 }
