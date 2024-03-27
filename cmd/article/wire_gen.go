@@ -37,8 +37,12 @@ func Init() *appx.App {
 	articleService := service.NewArticleService(articleRepository, readEventProducer, syncSearchEventProducer, logger)
 	articleServiceServer := grpc.NewArticleServiceServer(articleService)
 	server := ioc.InitGRPCxServer(articleServiceServer, client, logger)
+	cachedArticleRepository := repository.NewCachedArticleRepo(articleDAO, articleCache, userServiceClient, logger)
+	mySQLBinlogConsumer := events.NewMySQLBinlogConsumer(saramaClient, logger, cachedArticleRepository)
+	v := ioc.NewConsumers(mySQLBinlogConsumer)
 	app := &appx.App{
 		GRPCServer: server,
+		Consumers:  v,
 	}
 	return app
 }

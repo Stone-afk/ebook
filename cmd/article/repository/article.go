@@ -38,6 +38,18 @@ func NewCachedArticleRepository(dao dao.ArticleDAO,
 	}
 }
 
+func NewCachedArticleRepo(dao dao.ArticleDAO,
+	cache cache.ArticleCache,
+	userSvc userv1.UserServiceClient,
+	l logger.Logger) *CachedArticleRepository {
+	return &CachedArticleRepository{
+		userSvc: userSvc,
+		dao:     dao,
+		cache:   cache,
+		l:       l,
+	}
+}
+
 func NewCachedArticleRepositoryV1(authorDAO dao.ArticleAuthorDAO,
 	readerDAO dao.ArticleReaderDAO) ArticleRepository {
 	return &CachedArticleRepository{

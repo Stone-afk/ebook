@@ -8,6 +8,12 @@ import (
 func main() {
 	initViperWatch()
 	app := Init()
+	for _, c := range app.Consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
 	err := app.GRPCServer.Serve()
 	if err != nil {
 		panic(err)

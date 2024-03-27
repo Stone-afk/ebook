@@ -29,14 +29,17 @@ func Init() *appx.App {
 	wire.Build(
 		thirdProvider,
 		events.NewKafkaProducer,
+		events.NewMySQLBinlogConsumer,
 		events.NewSaramaSyncProducer,
 		cache.NewRedisArticleCache,
 		dao.NewGORMArticleDAO,
 		repository.NewCachedArticleRepository,
+		repository.NewCachedArticleRepo,
 		service.NewArticleService,
 		grpc.NewArticleServiceServer,
 		ioc.InitGRPCxServer,
-		wire.Struct(new(appx.App), "GRPCServer"),
+		ioc.NewConsumers,
+		wire.Struct(new(appx.App), "GRPCServer", "Consumers"),
 	)
 	return new(appx.App)
 }
