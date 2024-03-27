@@ -20,6 +20,16 @@ type MySQLBinlogConsumer struct {
 	repo   *repository.CachedArticleRepository
 }
 
+func NewMySQLBinlogConsumer(client sarama.Client,
+	l logger.Logger,
+	repo *repository.CachedArticleRepository) *MySQLBinlogConsumer {
+	return &MySQLBinlogConsumer{
+		client: client,
+		l:      l,
+		repo:   repo,
+	}
+}
+
 func (r *MySQLBinlogConsumer) Start() error {
 	cg, err := sarama.NewConsumerGroupFromClient("pub_articles_cache",
 		r.client)

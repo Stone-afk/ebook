@@ -1,6 +1,8 @@
 package ioc
 
 import (
+	"ebook/cmd/article/events"
+	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 )
@@ -30,4 +32,8 @@ func NewSyncProducer(client sarama.Client) sarama.SyncProducer {
 		panic(err)
 	}
 	return res
+}
+
+func NewConsumers(c *events.MySQLBinlogConsumer) []saramax.Consumer {
+	return []saramax.Consumer{c}
 }
