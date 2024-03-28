@@ -14,17 +14,14 @@ import (
 
 // Validator T 必须实现了 Entity 接口
 type Validator[T migrator.Entity] struct {
-	// 校验，以 XXX 为准，
-	base *gorm.DB
-	// 校验的是谁的数据
-	target    *gorm.DB
-	l         logger.Logger
-	p         events.Producer
-	direction string
+	baseValidator
 	// 在这里加字段，比如说，在查询 base 根据什么列来排序，在 target 的时候，根据什么列来查询数据
 	// 最极端的情况，是这样
-	utime         int64
-	batchSize     int
+	utime     int64
+	batchSize int
+	// 如果没有数据了，就睡眠
+	// 如果不是正数，那么就说明直接返回，结束这一次的循环
+	// 我很厌恶这种特殊值有特殊含义的做法，但是不得不搞
 	sleepInterval time.Duration
 	highLoad      *atomicx.Value[bool]
 	fromBase      func(ctx context.Context, offset int) (T, error)
@@ -35,14 +32,16 @@ func NewValidator[T migrator.Entity](
 	target *gorm.DB,
 	direction string,
 	l logger.Logger,
-	p events.Producer) *Validator[T] {
+	producer events.Producer) *Validator[T] {
 	res := &Validator[T]{
-		base:      base,
-		target:    target,
-		l:         l,
-		p:         p,
-		direction: direction,
-		highLoad:  atomicx.NewValueOf[bool](false),
+		baseValidator: baseValidator{
+			base:      base,
+			target:    target,
+			direction: direction,
+			l:         l,
+			producer:  producer,
+		},
+		highLoad: atomicx.NewValueOf[bool](false),
 	}
 	res.fromBase = res.fullFromBase
 	return res
@@ -292,7 +291,7 @@ func (v *Validator[T]) notifyBaseMissing(ctx context.Context, ids []int64) {
 
 func (v *Validator[T]) notify(ctx context.Context, id int64, typ string) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	err := v.p.ProduceInconsistentEvent(ctx, events.InconsistentEvent{
+	err := v.producer.ProduceInconsistentEvent(ctx, events.InconsistentEvent{
 		ID:        id,
 		Direction: v.direction,
 		Type:      typ,
