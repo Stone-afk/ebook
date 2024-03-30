@@ -35,7 +35,7 @@ var thirdProvider = wire.NewSet(
 var migratorProvider = wire.NewSet(
 	ioc.InitMigratorWeb,
 	ioc.InitFixDataConsumer,
-	ioc.InitMigradatorProducer)
+	ioc.InitMigratorProducer)
 
 //go:generate wire
 func Init() *App {
