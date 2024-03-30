@@ -14,7 +14,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-const topic = "migrator_interactives"
+const topic = "migrator_interactive"
+const canalMigratorTopic = "interactive_binlog"
 
 func InitFixDataConsumer(l logger.Logger,
 	src SrcDB,
@@ -28,8 +29,12 @@ func InitFixDataConsumer(l logger.Logger,
 	return res
 }
 
-func InitMigradatorProducer(p sarama.SyncProducer) events.Producer {
+func InitMigratorProducer(p sarama.SyncProducer) events.Producer {
 	return events.NewSaramaProducer(p, topic)
+}
+
+func InitCanalMigratorProducer(p sarama.SyncProducer) events.Producer {
+	return events.NewSaramaProducer(p, canalMigratorTopic)
 }
 
 func InitMigratorWeb(
