@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package interactive
+package main
 
 import (
 	"ebook/cmd/interactive/events/article"
@@ -14,13 +14,14 @@ import (
 	"ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
 	"ebook/cmd/interactive/service"
+	"ebook/cmd/pkg/appx"
 	"github.com/google/wire"
 )
 
 // Injectors from wire.go:
 
 //go:generate wire
-func Init() *App {
+func Init() *appx.App {
 	logger := ioc.InitLogger()
 	client := ioc.InitEtcdClient()
 	srcDB := ioc.InitSRC(logger)
@@ -36,15 +37,16 @@ func Init() *App {
 	server := ioc.InitGRPCxServer(logger, client, interactiveServiceServer)
 	saramaClient := ioc.InitKafka()
 	syncProducer := ioc.InitSyncProducer(saramaClient)
-	producer := ioc.InitMigradatorProducer(syncProducer)
+	producer := ioc.InitMigratorProducer(syncProducer)
 	ginxServer := ioc.InitMigratorWeb(logger, srcDB, dstDB, doubleWritePool, producer)
 	interactiveReadEventConsumer := article.NewInteractiveReadEventConsumer(saramaClient, interactiveRepository, logger)
 	consumer := ioc.InitFixDataConsumer(logger, srcDB, dstDB, saramaClient)
-	v := ioc.NewConsumers(interactiveReadEventConsumer, consumer)
-	app := &App{
-		server:    server,
-		webAdmin:  ginxServer,
-		consumers: v,
+	interactiveMySQLBinlogConsumer := ioc.InitInteractiveMySQLBinlogConsumer(saramaClient, logger, srcDB, dstDB, producer)
+	v := ioc.NewConsumers(interactiveReadEventConsumer, consumer, interactiveMySQLBinlogConsumer)
+	app := &appx.App{
+		GRPCServer: server,
+		WebServer:  ginxServer,
+		Consumers:  v,
 	}
 	return app
 }
@@ -55,4 +57,4 @@ var serviceProvider = wire.NewSet(dao.NewGORMInteractiveDAO, cache.NewRedisInter
 
 var thirdProvider = wire.NewSet(ioc.InitDST, ioc.InitSRC, ioc.InitBizDB, ioc.InitDoubleWritePool, ioc.InitRedis, ioc.InitLogger, ioc.InitSyncProducer, ioc.InitKafka, ioc.InitEtcdClient)
 
-var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitMigradatorProducer)
+var migratorProvider = wire.NewSet(ioc.InitMigratorWeb, ioc.InitFixDataConsumer, ioc.InitInteractiveMySQLBinlogConsumer, ioc.InitMigratorProducer)

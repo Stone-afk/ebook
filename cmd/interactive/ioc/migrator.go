@@ -15,7 +15,24 @@ import (
 )
 
 const topic = "migrator_interactive"
-const canalMigratorTopic = "interactive_binlog"
+
+type InteractiveMySQLBinlogConsumer struct {
+	*events.MySQLBinlogConsumer[dao.Interactive]
+}
+
+func InitInteractiveMySQLBinlogConsumer(
+	client sarama.Client,
+	l logger.Logger,
+	src SrcDB,
+	dst DstDB,
+	p events.Producer) *InteractiveMySQLBinlogConsumer {
+	return &InteractiveMySQLBinlogConsumer{
+		MySQLBinlogConsumer: events.NewMySQLBinlogConsumer[dao.Interactive](
+			client, l, src, dst, p,
+			"interactive_binlog",
+			"migrator_interactive", "ebook_interactive"),
+	}
+}
 
 func InitFixDataConsumer(l logger.Logger,
 	src SrcDB,
@@ -31,10 +48,6 @@ func InitFixDataConsumer(l logger.Logger,
 
 func InitMigratorProducer(p sarama.SyncProducer) events.Producer {
 	return events.NewSaramaProducer(p, topic)
-}
-
-func InitCanalMigratorProducer(p sarama.SyncProducer) events.Producer {
-	return events.NewSaramaProducer(p, canalMigratorTopic)
 }
 
 func InitMigratorWeb(
