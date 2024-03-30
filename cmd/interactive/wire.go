@@ -1,8 +1,9 @@
 //go:build wireinject
 
-package interactive
+package main
 
 import (
+	"ebook/cmd/pkg/appx"
 	events "ebook/cmd/interactive/events/article"
 	"ebook/cmd/interactive/grpc"
 	"ebook/cmd/interactive/ioc"
@@ -35,10 +36,11 @@ var thirdProvider = wire.NewSet(
 var migratorProvider = wire.NewSet(
 	ioc.InitMigratorWeb,
 	ioc.InitFixDataConsumer,
+	ioc.InitInteractiveMySQLBinlogConsumer,
 	ioc.InitMigratorProducer)
 
 //go:generate wire
-func Init() *App {
+func Init() *appx.App {
 	wire.Build(
 		thirdProvider,
 		serviceProvider,
@@ -47,7 +49,7 @@ func Init() *App {
 		grpc.NewInteractiveServiceServer,
 		ioc.NewConsumers,
 		ioc.InitGRPCxServer,
-		wire.Struct(new(App), "*"),
+		wire.Struct(new(appx.App), "GRPCServer", "WebServer", "Consumers"),
 	)
-	return new(App)
+	return new(appx.App)
 }

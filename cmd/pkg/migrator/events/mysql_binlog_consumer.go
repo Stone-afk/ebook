@@ -1,12 +1,10 @@
-package article
+package events
 
 import (
 	"context"
-	"ebook/cmd/article/repository"
 	"ebook/cmd/pkg/canalx"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
-	"ebook/cmd/pkg/migrator/events"
 	"ebook/cmd/pkg/migrator/validator"
 	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
@@ -15,13 +13,13 @@ import (
 	"time"
 )
 
-const binlogTopic = "interactive_binlog"
-
 type MySQLBinlogConsumer[T migrator.Entity] struct {
+	topic    string
+	groupId  string
+	database string
 	client   sarama.Client
 	l        logger.Logger
-	table    string
-	repo     *repository.CachedArticleRepository
+	//table    string
 	srcToDst *validator.CanalIncrValidator[T]
 	dstToSrc *validator.CanalIncrValidator[T]
 	dstFirst *atomic.Bool
@@ -30,11 +28,10 @@ type MySQLBinlogConsumer[T migrator.Entity] struct {
 func NewMySQLBinlogConsumer[T migrator.Entity](
 	client sarama.Client,
 	l logger.Logger,
-	table string,
 	src *gorm.DB,
 	dst *gorm.DB,
-	p events.Producer,
-	repo *repository.CachedArticleRepository) *MySQLBinlogConsumer[T] {
+	p Producer,
+	topic string, groupId string, database string) *MySQLBinlogConsumer[T] {
 	srcToDst := validator.NewCanalIncrValidator[T](src, dst, "SRC", l, p)
 	dstToSrc := validator.NewCanalIncrValidator[T](src, dst, "DST", l, p)
 	return &MySQLBinlogConsumer[T]{
@@ -42,19 +39,22 @@ func NewMySQLBinlogConsumer[T migrator.Entity](
 		dstFirst: &atomic.Bool{},
 		srcToDst: srcToDst,
 		dstToSrc: dstToSrc,
-		table:    table,
-		repo:     repo}
+		//table:    table,
+		topic:    topic,
+		groupId:  groupId,
+		database: database,
+	}
 }
 
 func (r *MySQLBinlogConsumer[T]) Start() error {
-	cg, err := sarama.NewConsumerGroupFromClient("migrator_incr",
+	cg, err := sarama.NewConsumerGroupFromClient(r.groupId,
 		r.client)
 	if err != nil {
 		return err
 	}
 	go func() {
 		err := cg.Consume(context.Background(),
-			[]string{binlogTopic},
+			[]string{r.topic},
 			saramax.NewHandler[canalx.Message[T]](r.l, r.Consume))
 		if err != nil {
 			r.l.Error("退出了消费循环异常", logger.Error(err))
@@ -72,7 +72,7 @@ func (r *MySQLBinlogConsumer[T]) Consume(msg *sarama.ConsumerMessage,
 	//    dsn: "root:root@tcp(localhost:13316)/ebook"
 	//  dst:
 	//    dsn: "root:root@tcp(localhost:13316)/ebook_interactive"
-	if dstFirst && val.Database == "ebook_interactive" {
+	if dstFirst && val.Database == r.database {
 		// 校验，用 dst 的来校验
 		v = r.dstToSrc
 	} else if !dstFirst && val.Database == "ebook" {

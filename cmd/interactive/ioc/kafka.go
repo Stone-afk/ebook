@@ -29,10 +29,12 @@ func InitKafka() sarama.Client {
 
 // NewConsumers 面临的问题依旧是所有的 Consumer 在这里注册一下
 func NewConsumers(intr *article.InteractiveReadEventConsumer,
-	fix *fixer.Consumer[dao.Interactive]) []saramax.Consumer {
+	fix *fixer.Consumer[dao.Interactive],
+	bc *InteractiveMySQLBinlogConsumer) []saramax.Consumer {
 	return []saramax.Consumer{
 		intr,
 		fix,
+		bc,
 	}
 }
 
