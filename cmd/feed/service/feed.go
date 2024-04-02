@@ -105,7 +105,7 @@ func (svc *feedService) GetFeedEvents(ctx context.Context, uid, timestamp, limit
 }
 
 func NewFeedService(repo repository.FeedEventRepo,
-//client followv1.FollowServiceClient,
+	//client followv1.FollowServiceClient,
 	handlerMap map[string]Handler) FeedService {
 	return &feedService{
 		repo: repo,
