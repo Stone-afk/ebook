@@ -36,8 +36,45 @@ func (svc *feedService) CreateFeedEvent(ctx context.Context, feed domain.FeedEve
 
 // GetFeedEventListV1 不依赖于 Handler 的直接查询
 func (svc *feedService) GetFeedEventListV1(ctx context.Context, uid int64, timestamp, limit int64) ([]domain.FeedEvent, error) {
-	//TODO implement me
-	panic("implement me")
+	var eg errgroup.Group
+	var mu sync.RWMutex
+	res := make([]domain.FeedEvent, 0, limit*2)
+	eg.Go(func() error {
+		resp, rerr := svc.followClient.GetFollowee(ctx, &followv1.GetFolloweeRequest{
+			Follower: uid,
+			Offset:   0,
+			Limit:    200,
+		})
+		if rerr != nil {
+			return rerr
+		}
+		followeeIds := slice.Map(resp.FollowRelations, func(idx int, src *followv1.FollowRelation) int64 {
+			return src.Followee
+		})
+		events, err := svc.repo.FindPullEvents(ctx, followeeIds, timestamp, limit)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		res = append(res, events...)
+		mu.Unlock()
+		return nil
+	})
+	eg.Go(func() error {
+		events, err := svc.repo.FindPushEvents(ctx, uid, timestamp, limit)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		res = append(res, events...)
+		mu.Unlock()
+		return nil
+	})
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Ctime.Unix() > res[j].Ctime.Unix()
+	})
+	err := eg.Wait()
+	return res[:slice.Min[int]([]int{int(limit), len(res)})], err
 }
 
 func (svc *feedService) GetFeedEvents(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
@@ -68,7 +105,7 @@ func (svc *feedService) GetFeedEvents(ctx context.Context, uid, timestamp, limit
 }
 
 func NewFeedService(repo repository.FeedEventRepo,
-	//client followv1.FollowServiceClient,
+//client followv1.FollowServiceClient,
 	handlerMap map[string]Handler) FeedService {
 	return &feedService{
 		repo: repo,
