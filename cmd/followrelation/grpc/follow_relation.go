@@ -20,6 +20,34 @@ func (s *FollowServiceServer) convertToView(relation domain.FollowRelation) *fol
 	}
 }
 
+func (s *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
+	// TODO 先用 GetAllFollower
+	relationList, err := s.svc.GetAllFollower(ctx, request.Followee)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*followv1.FollowRelation, 0, len(relationList))
+	for _, relation := range relationList {
+		res = append(res, s.convertToView(relation))
+	}
+	return &followv1.GetFollowerResponse{
+		FollowRelations: res,
+	}, nil
+}
+
+func (s *FollowServiceServer) GetFollowStatic(ctx context.Context, request *followv1.GetFollowStaticRequest) (*followv1.GetFollowStaticResponse, error) {
+	res, err := s.svc.GetFollowStatics(ctx, request.Followee)
+	if err != nil {
+		return nil, err
+	}
+	return &followv1.GetFollowStaticResponse{
+		FollowStatic: &followv1.FollowStatic{
+			Followers: res.Followers,
+			Followees: res.Followees,
+		},
+	}, nil
+}
+
 func (s *FollowServiceServer) GetFollowee(ctx context.Context, request *followv1.GetFolloweeRequest) (*followv1.GetFolloweeResponse, error) {
 	relationList, err := s.svc.GetFollowee(ctx, request.Follower, request.Offset, request.Limit)
 	if err != nil {

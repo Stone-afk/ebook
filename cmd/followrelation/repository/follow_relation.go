@@ -14,12 +14,20 @@ type CachedRelationRepository struct {
 	l     logger.Logger
 }
 
-func (repo *CachedRelationRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
-	followerList, err := repo.dao.FollowRelationList(ctx, follower, offset, limit)
+func (repo *CachedRelationRepository) GetFollower(ctx context.Context, followee, offset, limit int64) ([]domain.FollowRelation, error) {
+	followerList, err := repo.dao.FindFollowerList(ctx, followee, offset, limit)
 	if err != nil {
 		return nil, err
 	}
 	return repo.genFollowRelationList(followerList), nil
+}
+
+func (repo *CachedRelationRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
+	followeeList, err := repo.dao.FindFolloweeList(ctx, follower, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return repo.genFollowRelationList(followeeList), nil
 }
 
 func (repo *CachedRelationRepository) genFollowRelationList(followerList []dao.FollowRelation) []domain.FollowRelation {
