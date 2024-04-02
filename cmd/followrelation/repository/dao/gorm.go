@@ -11,7 +11,16 @@ type GORMFollowRelationDAO struct {
 	db *gorm.DB
 }
 
-func (dao *GORMFollowRelationDAO) FollowRelationList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error) {
+func (dao *GORMFollowRelationDAO) FindFollowerList(ctx context.Context, followee, offset, limit int64) ([]FollowRelation, error) {
+	var res []FollowRelation
+	err := dao.db.WithContext(ctx).
+		Where("followee = ? AND status = ?", followee, FollowRelationStatusActive).
+		Offset(int(offset)).Limit(int(limit)).
+		Find(&res).Error
+	return res, err
+}
+
+func (dao *GORMFollowRelationDAO) FindFolloweeList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error) {
 	var res []FollowRelation
 	err := dao.db.WithContext(ctx).
 		Where("follower = ? AND status = ?", follower, FollowRelationStatusActive).

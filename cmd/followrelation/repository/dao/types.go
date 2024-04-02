@@ -3,8 +3,10 @@ package dao
 import "context"
 
 type FollowRelationDao interface {
-	// FollowRelationList 获取某人的关注列表
-	FollowRelationList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error)
+	// FindFollowerList 获取某人的粉丝列表
+	FindFollowerList(ctx context.Context, followee, offset, limit int64) ([]FollowRelation, error)
+	// FindFolloweeList 获取某人的关注列表
+	FindFolloweeList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error)
 	FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error)
 	// CreateFollowRelation 创建联系人
 	CreateFollowRelation(ctx context.Context, f FollowRelation) error
