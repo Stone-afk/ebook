@@ -30,8 +30,8 @@ type LikeFeedEventConsumer struct {
 func NewLikeFeedEventConsumer(
 	client sarama.Client,
 	l logger.Logger,
-	svc service.FeedService) *FollowerFeedEventConsumer {
-	return &FollowerFeedEventConsumer{
+	svc service.FeedService) *LikeFeedEventConsumer {
+	return &LikeFeedEventConsumer{
 		svc:    svc,
 		client: client,
 		l:      l,
