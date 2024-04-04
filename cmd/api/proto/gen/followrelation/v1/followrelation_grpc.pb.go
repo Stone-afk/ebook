@@ -24,6 +24,7 @@ const (
 	FollowService_GetFollowee_FullMethodName     = "/follow.v1.FollowService/GetFollowee"
 	FollowService_FollowInfo_FullMethodName      = "/follow.v1.FollowService/FollowInfo"
 	FollowService_GetFollower_FullMethodName     = "/follow.v1.FollowService/GetFollower"
+	FollowService_GetAllFollower_FullMethodName  = "/follow.v1.FollowService/GetAllFollower"
 	FollowService_GetFollowStatic_FullMethodName = "/follow.v1.FollowService/GetFollowStatic"
 )
 
@@ -40,6 +41,7 @@ type FollowServiceClient interface {
 	FollowInfo(ctx context.Context, in *FollowInfoRequest, opts ...grpc.CallOption) (*FollowInfoResponse, error)
 	// 获取某人的粉丝列表
 	GetFollower(ctx context.Context, in *GetFollowerRequest, opts ...grpc.CallOption) (*GetFollowerResponse, error)
+	GetAllFollower(ctx context.Context, in *GetAllFollowerRequest, opts ...grpc.CallOption) (*GetAllFollowerResponse, error)
 	// 获取默认的关注人数
 	GetFollowStatic(ctx context.Context, in *GetFollowStaticRequest, opts ...grpc.CallOption) (*GetFollowStaticResponse, error)
 }
@@ -97,6 +99,15 @@ func (c *followServiceClient) GetFollower(ctx context.Context, in *GetFollowerRe
 	return out, nil
 }
 
+func (c *followServiceClient) GetAllFollower(ctx context.Context, in *GetAllFollowerRequest, opts ...grpc.CallOption) (*GetAllFollowerResponse, error) {
+	out := new(GetAllFollowerResponse)
+	err := c.cc.Invoke(ctx, FollowService_GetAllFollower_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *followServiceClient) GetFollowStatic(ctx context.Context, in *GetFollowStaticRequest, opts ...grpc.CallOption) (*GetFollowStaticResponse, error) {
 	out := new(GetFollowStaticResponse)
 	err := c.cc.Invoke(ctx, FollowService_GetFollowStatic_FullMethodName, in, out, opts...)
@@ -119,6 +130,7 @@ type FollowServiceServer interface {
 	FollowInfo(context.Context, *FollowInfoRequest) (*FollowInfoResponse, error)
 	// 获取某人的粉丝列表
 	GetFollower(context.Context, *GetFollowerRequest) (*GetFollowerResponse, error)
+	GetAllFollower(context.Context, *GetAllFollowerRequest) (*GetAllFollowerResponse, error)
 	// 获取默认的关注人数
 	GetFollowStatic(context.Context, *GetFollowStaticRequest) (*GetFollowStaticResponse, error)
 	mustEmbedUnimplementedFollowServiceServer()
@@ -142,6 +154,9 @@ func (UnimplementedFollowServiceServer) FollowInfo(context.Context, *FollowInfoR
 }
 func (UnimplementedFollowServiceServer) GetFollower(context.Context, *GetFollowerRequest) (*GetFollowerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFollower not implemented")
+}
+func (UnimplementedFollowServiceServer) GetAllFollower(context.Context, *GetAllFollowerRequest) (*GetAllFollowerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllFollower not implemented")
 }
 func (UnimplementedFollowServiceServer) GetFollowStatic(context.Context, *GetFollowStaticRequest) (*GetFollowStaticResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFollowStatic not implemented")
@@ -249,6 +264,24 @@ func _FollowService_GetFollower_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FollowService_GetAllFollower_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllFollowerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FollowServiceServer).GetAllFollower(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FollowService_GetAllFollower_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FollowServiceServer).GetAllFollower(ctx, req.(*GetAllFollowerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _FollowService_GetFollowStatic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetFollowStaticRequest)
 	if err := dec(in); err != nil {
@@ -293,6 +326,10 @@ var FollowService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetFollower",
 			Handler:    _FollowService_GetFollower_Handler,
+		},
+		{
+			MethodName: "GetAllFollower",
+			Handler:    _FollowService_GetAllFollower_Handler,
 		},
 		{
 			MethodName: "GetFollowStatic",

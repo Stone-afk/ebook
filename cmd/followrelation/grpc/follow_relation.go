@@ -20,9 +20,22 @@ func (s *FollowServiceServer) convertToView(relation domain.FollowRelation) *fol
 	}
 }
 
-func (s *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
-	// TODO 先用 GetAllFollower
+func (s *FollowServiceServer) GetAllFollower(ctx context.Context, request *followv1.GetAllFollowerRequest) (*followv1.GetAllFollowerResponse, error) {
 	relationList, err := s.svc.GetAllFollower(ctx, request.Followee)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*followv1.FollowRelation, 0, len(relationList))
+	for _, relation := range relationList {
+		res = append(res, s.convertToView(relation))
+	}
+	return &followv1.GetAllFollowerResponse{
+		FollowRelations: res,
+	}, nil
+}
+
+func (s *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
+	relationList, err := s.svc.GetFollower(ctx, request.Followee, request.GetOffset(), request.GetLimit())
 	if err != nil {
 		return nil, err
 	}
