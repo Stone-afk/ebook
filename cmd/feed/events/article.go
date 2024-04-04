@@ -25,9 +25,20 @@ type ArticleEventConsumer struct {
 	svc    service.FeedService
 }
 
+func NewArticleEventConsumer(
+	client sarama.Client,
+	l logger.Logger,
+	svc service.FeedService) *ArticleEventConsumer {
+	return &ArticleEventConsumer{
+		svc:    svc,
+		client: client,
+		l:      l,
+	}
+}
+
 // Start 这边就是自己启动 goroutine 了
 func (c *ArticleEventConsumer) Start() error {
-	cg, err := sarama.NewConsumerGroupFromClient("articleFeed",
+	cg, err := sarama.NewConsumerGroupFromClient("article_feed_event",
 		c.client)
 	if err != nil {
 		return err
@@ -42,6 +53,7 @@ func (c *ArticleEventConsumer) Start() error {
 	}()
 	return err
 }
+
 func (c *ArticleEventConsumer) Consume(msg *sarama.ConsumerMessage,
 	evt ArticleFeedEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -53,5 +65,4 @@ func (c *ArticleEventConsumer) Consume(msg *sarama.ConsumerMessage,
 			"aid": strconv.FormatInt(evt.uid, 10),
 		},
 	})
-
 }
