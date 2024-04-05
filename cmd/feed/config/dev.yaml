@@ -1,13 +1,14 @@
 db:
   dsn: "root:root@tcp(localhost:13316)/ebook_feed"
+
 grpc:
   #  启动监听 9000 端口
   server:
     port: 8099
     etcdTTL: 60
   client:
-    feed:
-      target: "etcd:///service/follow"
+    follow_relation:
+      target: "etcd:///service/follow_relation"
 
 redis:
   addr: "localhost:6379"

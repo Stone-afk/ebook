@@ -59,7 +59,7 @@ func (c *ArticleEventConsumer) Consume(msg *sarama.ConsumerMessage,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return c.svc.CreateFeedEvent(ctx, domain.FeedEvent{
-		Type: service.FollowEventName,
+		Type: service.ArticleEventName,
 		Ext: map[string]string{
 			"uid": strconv.FormatInt(evt.uid, 10),
 			"aid": strconv.FormatInt(evt.uid, 10),

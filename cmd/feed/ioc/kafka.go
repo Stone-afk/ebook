@@ -1,6 +1,8 @@
 package ioc
 
 import (
+	"ebook/cmd/feed/events"
+	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
 )
@@ -21,4 +23,17 @@ func InitKafka() sarama.Client {
 		panic(err)
 	}
 	return client
+}
+
+// NewConsumers 面临的问题依旧是所有的 Consumer 在这里注册一下
+func NewConsumers(article *events.ArticleEventConsumer,
+	feed *events.FeedEventConsumer,
+	follower *events.FollowerFeedEventConsumer,
+	like *events.LikeFeedEventConsumer) []saramax.Consumer {
+	return []saramax.Consumer{
+		article,
+		feed,
+		follower,
+		like,
+	}
 }

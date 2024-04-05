@@ -1,6 +1,9 @@
 package events
 
-import "context"
+import (
+	"context"
+	"ebook/cmd/pkg/typex"
+)
 
 type SyncDataEvent struct {
 	IndexName string
@@ -25,6 +28,13 @@ type ReadEventV1 struct {
 	Aids []int64
 }
 
+type FeedEvent struct {
+	Type     string
+	Metadata ExtendFields
+}
+
+type ExtendFields = typex.ExtendFields
+
 type ReadEventProducer interface {
 	ProduceReadEvent(ctx context.Context, evt ReadEvent) error
 	//ProduceReadEventV1(ctx context.Context, v1 ReadEventV1) error
@@ -33,4 +43,9 @@ type ReadEventProducer interface {
 type SyncSearchEventProducer interface {
 	ProduceStandardSyncEvent(ctx context.Context, evt ArticleEvent) error
 	ProduceSyncEvent(ctx context.Context, evt ArticleEvent) error
+}
+
+type FeedEventProducer interface {
+	ProduceFeedEvent(ctx context.Context, evt FeedEvent) error
+	ProduceStandardFeedEvent(ctx context.Context, evt FeedEvent) error
 }

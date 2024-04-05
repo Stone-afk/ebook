@@ -30,8 +30,8 @@ type LikeFeedEventConsumer struct {
 func NewLikeFeedEventConsumer(
 	client sarama.Client,
 	l logger.Logger,
-	svc service.FeedService) *FollowerFeedEventConsumer {
-	return &FollowerFeedEventConsumer{
+	svc service.FeedService) *LikeFeedEventConsumer {
+	return &LikeFeedEventConsumer{
 		svc:    svc,
 		client: client,
 		l:      l,
@@ -60,7 +60,7 @@ func (c *LikeFeedEventConsumer) Consume(msg *sarama.ConsumerMessage,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return c.svc.CreateFeedEvent(ctx, domain.FeedEvent{
-		Type: service.FollowEventName,
+		Type: service.LikeEventName,
 		Ext: map[string]string{
 			"uid":     strconv.FormatInt(evt.Uid, 10),
 			"liked":   strconv.Itoa(evt.liked),
