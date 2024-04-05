@@ -1,0 +1,25 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/ebook_feed"
+
+grpc:
+  #  启动监听 9000 端口
+  server:
+    port: 8099
+    etcdTTL: 60
+  client:
+    follow_relation:
+      target: "etcd:///service/follow_relation"
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+service:
+  threshold: 4

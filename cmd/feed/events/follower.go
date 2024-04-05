@@ -15,10 +15,10 @@ const topicFollowerEvent = "follower_feed_event"
 
 // FollowerFeedEvent 由业务方定义，本服务做适配
 type FollowerFeedEvent struct {
-	follower int64
-	followee int64
-	biz      string
-	bizId    int64
+	Follower int64
+	Followee int64
+	Biz      string
+	BizId    int64
 }
 
 type FollowerFeedEventConsumer struct {
@@ -62,10 +62,10 @@ func (c *FollowerFeedEventConsumer) Consume(msg *sarama.ConsumerMessage,
 	return c.svc.CreateFeedEvent(ctx, domain.FeedEvent{
 		Type: service.FollowEventName,
 		Ext: map[string]string{
-			"followee": strconv.FormatInt(evt.followee, 10),
-			"follower": strconv.FormatInt(evt.follower, 10),
-			"biz_id":   strconv.FormatInt(evt.bizId, 10),
-			"biz":      evt.biz,
+			"followee": strconv.FormatInt(evt.Followee, 10),
+			"follower": strconv.FormatInt(evt.Follower, 10),
+			"biz_id":   strconv.FormatInt(evt.BizId, 10),
+			"biz":      evt.Biz,
 		},
 	})
 }

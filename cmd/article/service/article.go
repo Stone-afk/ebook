@@ -200,8 +200,9 @@ func (svc *articleService) sendFeedEvent(ctx context.Context, art domain.Article
 	evt := events.FeedEvent{
 		Type: "article_event",
 		Metadata: map[string]string{
-			"uid": strconv.FormatInt(art.Author.Id, 10),
-			"aid": strconv.FormatInt(art.Id, 10),
+			"uid":   strconv.FormatInt(art.Author.Id, 10),
+			"aid":   strconv.FormatInt(art.Id, 10),
+			"title": art.Title,
 		},
 	}
 	er := svc.feedEventProducer.ProduceFeedEvent(ctx, evt)
