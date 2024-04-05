@@ -16,9 +16,9 @@ const topicLikeEvent = "like_feed_event"
 // LikeFeedEvent 由业务方定义，本服务做适配
 type LikeFeedEvent struct {
 	Uid   int64
-	liked int
-	biz   string
-	bizId int64
+	Liked int
+	Biz   string
+	BizId int64
 }
 
 type LikeFeedEventConsumer struct {
@@ -63,9 +63,9 @@ func (c *LikeFeedEventConsumer) Consume(msg *sarama.ConsumerMessage,
 		Type: service.LikeEventName,
 		Ext: map[string]string{
 			"uid":     strconv.FormatInt(evt.Uid, 10),
-			"liked":   strconv.Itoa(evt.liked),
-			"biz_idd": strconv.FormatInt(evt.bizId, 10),
-			"biz":     evt.biz,
+			"liked":   strconv.Itoa(evt.Liked),
+			"biz_idd": strconv.FormatInt(evt.BizId, 10),
+			"biz":     evt.Biz,
 		},
 	})
 }

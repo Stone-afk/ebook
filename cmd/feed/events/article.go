@@ -15,8 +15,9 @@ const topicArticleEvent = "article_feed_event"
 
 // ArticleFeedEvent 由业务方定义，本服务做适配
 type ArticleFeedEvent struct {
-	uid int64
-	aid int64
+	Uid   int64
+	Aid   int64
+	Title string
 }
 
 type ArticleEventConsumer struct {
@@ -61,8 +62,9 @@ func (c *ArticleEventConsumer) Consume(msg *sarama.ConsumerMessage,
 	return c.svc.CreateFeedEvent(ctx, domain.FeedEvent{
 		Type: service.ArticleEventName,
 		Ext: map[string]string{
-			"uid": strconv.FormatInt(evt.uid, 10),
-			"aid": strconv.FormatInt(evt.uid, 10),
+			"uid":   strconv.FormatInt(evt.Uid, 10),
+			"aid":   strconv.FormatInt(evt.Aid, 10),
+			"title": evt.Title,
 		},
 	})
 }

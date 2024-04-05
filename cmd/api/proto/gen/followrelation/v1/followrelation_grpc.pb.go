@@ -28,6 +28,7 @@ const (
 	FollowService_GetFollowStatic_FullMethodName = "/follow.v1.FollowService/GetFollowStatic"
 )
 
+//go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/api/proto/gen/followrelation/v1/followrelation_grpc.pb.go -package=followmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/api/proto/gen/followrelation/v1/mocks/follow_grpc.mock.go
 // FollowServiceClient is the client API for FollowService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.

@@ -11,8 +11,9 @@ const topicFeedEvent = "feed_event"
 
 // ArticleFeedEvent 由业务方定义，本服务做适配
 type ArticleFeedEvent struct {
-	uid int64
-	aid int64
+	Uid   int64
+	Aid   int64
+	Title string
 }
 
 type ArticleFeedEventProducer struct {
@@ -40,9 +41,14 @@ func (p *ArticleFeedEventProducer) ProduceFeedEvent(ctx context.Context, evt Fee
 	if err != nil {
 		return err
 	}
+	title, err := evt.Metadata.Get("title").String()
+	if err != nil {
+		return err
+	}
 	val, err := json.Marshal(ArticleFeedEvent{
-		uid: uid,
-		aid: aid,
+		Uid:   uid,
+		Aid:   aid,
+		Title: title,
 	})
 	if err != nil {
 		return err
