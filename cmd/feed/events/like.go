@@ -60,7 +60,7 @@ func (c *LikeFeedEventConsumer) Consume(msg *sarama.ConsumerMessage,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return c.svc.CreateFeedEvent(ctx, domain.FeedEvent{
-		Type: service.FollowEventName,
+		Type: service.LikeEventName,
 		Ext: map[string]string{
 			"uid":     strconv.FormatInt(evt.Uid, 10),
 			"liked":   strconv.Itoa(evt.liked),

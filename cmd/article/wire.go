@@ -31,6 +31,7 @@ func Init() *appx.App {
 		events.NewKafkaProducer,
 		events.NewMySQLBinlogConsumer,
 		events.NewSaramaSyncProducer,
+		events.NewArticleFeedEventProducer,
 		cache.NewRedisArticleCache,
 		dao.NewGORMArticleDAO,
 		repository.NewCachedArticleRepository,

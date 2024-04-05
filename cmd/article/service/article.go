@@ -7,6 +7,7 @@ import (
 	"ebook/cmd/article/repository"
 	"ebook/cmd/pkg/logger"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type articleService struct {
 	repo                    repository.ArticleRepository
 	readEventProducer       events.ReadEventProducer
 	syncSearchEventProducer events.SyncSearchEventProducer
+	feedEventProducer       events.FeedEventProducer
 	log                     logger.Logger
 
 	ch chan readInfo
@@ -28,12 +30,14 @@ type articleService struct {
 func NewArticleService(repo repository.ArticleRepository,
 	readEventProducer events.ReadEventProducer,
 	syncSearchEventProducer events.SyncSearchEventProducer,
+	feedEventProducer events.FeedEventProducer,
 	l logger.Logger) ArticleService {
 	return &articleService{
 		repo:                    repo,
 		log:                     l,
 		readEventProducer:       readEventProducer,
 		syncSearchEventProducer: syncSearchEventProducer,
+		feedEventProducer:       feedEventProducer,
 	}
 }
 
@@ -169,6 +173,7 @@ func (svc *articleService) Publish(ctx context.Context,
 	if err == nil {
 		go func() {
 			svc.sendSyncEventToSearch(ctx, art)
+			svc.sendFeedEvent(ctx, art)
 		}()
 	}
 	return artId, err
@@ -187,6 +192,24 @@ func (svc *articleService) sendSyncEventToSearch(ctx context.Context, art domain
 		er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
 		if er != nil {
 			svc.log.Error("ProduceStandardSyncEvent 发送同步搜索文章事件失败", logger.Error(er))
+		}
+	}
+}
+
+func (svc *articleService) sendFeedEvent(ctx context.Context, art domain.Article) {
+	evt := events.FeedEvent{
+		Type: "article_event",
+		Metadata: map[string]string{
+			"uid": strconv.FormatInt(art.Author.Id, 10),
+			"aid": strconv.FormatInt(art.Id, 10),
+		},
+	}
+	er := svc.feedEventProducer.ProduceFeedEvent(ctx, evt)
+	if er != nil {
+		svc.log.Error("ProduceFeedEvent 发送feed流事件失败", logger.Error(er))
+		er = svc.feedEventProducer.ProduceStandardFeedEvent(ctx, evt)
+		if er != nil {
+			svc.log.Error("ProduceStandardFeedEvent 发送feed流事件失败", logger.Error(er))
 		}
 	}
 }

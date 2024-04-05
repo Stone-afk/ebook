@@ -1,15 +1,11 @@
 package domain
 
 import (
-	"errors"
-	"fmt"
-	"github.com/ecodeclub/ekit"
+	"ebook/cmd/pkg/typex"
 	"time"
 )
 
-type ExtendFields map[string]string
-
-var errKeyNotFound = errors.New("没有找到对应的 key")
+type ExtendFields = typex.ExtendFields
 
 type FeedEvent struct {
 	ID int64
@@ -20,14 +16,4 @@ type FeedEvent struct {
 	Type  string
 	Ctime time.Time
 	Ext   ExtendFields
-}
-
-func (f ExtendFields) Get(key string) ekit.AnyValue {
-	val, ok := f[key]
-	if !ok {
-		return ekit.AnyValue{
-			Err: fmt.Errorf("%w, key %s", errKeyNotFound),
-		}
-	}
-	return ekit.AnyValue{Val: val}
 }
