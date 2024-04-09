@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // Conn 稍微做一个封装
@@ -52,7 +53,79 @@ func (g *WsGateway) Start(addr string) error {
 }
 
 func (g *WsGateway) wsHandler(writer http.ResponseWriter, request *http.Request) {
-	panic("")
+	conn, err := g.upgrader.Upgrade(writer, request, nil)
+	if err != nil {
+		// 升级失败
+		_, _ = writer.Write([]byte("升级 ws 失败"))
+		return
+	}
+	// 在这里拿到 session。
+	// 如果我在这里拿到了 session
+	// 模拟我从 session/token 里面拿到 uid
+	c := &Conn{Conn: conn}
+	uid := g.Uid(request)
+	// 我记录一下，哪些人连上了我
+	g.conns.Store(uid, c)
+	// 就是我得拿到你的 session
+	go func() {
+		defer func() {
+			g.conns.Delete(uid)
+		}()
+		for {
+			// 在这里监听用户发过来的消息
+			// typ 一般不需要处理，前端和你会约定好，typ 是什么
+			// websocket 这里你拿不到 token
+			typ, msgBytes, err := c.ReadMessage()
+			//switch err {
+			//case context.DeadlineExceeded:
+			//	// 这个地方你是可以继续的
+			//	continue
+			//case nil:
+			//
+			//default:
+			//	// 都是网络出了问题，或者你的连接出了任务
+			//	return
+			//}
+			if err != nil {
+				return
+			}
+			switch typ {
+			case websocket.TextMessage, websocket.BinaryMessage:
+				// 你是不是得知道，谁发的？发给谁？内容是什么？
+				var msg Message
+				err = json.Unmarshal(msgBytes, &msg)
+				if err != nil {
+					// 格式不对，正常不可能进来
+					continue
+				}
+				go func() {
+					// 我是建议开的
+					// 开 goroutine 的危险
+					// 搞协程池（任务池），控制住 goroutine 的数量
+					// 再开一个 goroutine
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+					err = g.svc.Receive(ctx, uid, msg)
+					if err != nil {
+						// 引入重试
+						// 你是不是要告诉前端，你出错了
+						// 前端怎么知道我哪条出错了？
+						err = c.Send(Message{
+							Seq:     msg.Seq,
+							Type:    "result",
+							Content: "failed",
+						})
+						if err != nil {
+							// 记录日志
+							// 这里也可以引入重试
+						}
+					}
+					cancel()
+				}()
+			case websocket.CloseMessage:
+				_ = c.Close()
+			}
+		}
+	}()
 }
 
 // Uid 一般是从 jwt token 或者 session 里面取出来
