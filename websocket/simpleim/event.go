@@ -1,5 +1,36 @@
 package simpleim
 
+// MessageV1 和前端约定好，具体的消息的内容的格式
+//type MessageV1 struct {
+//
+//	// 这个是前端的序列号
+//	// 不要求全局唯一的，正常只要当下这个 websocket 唯一就可以
+//	Seq string
+//
+//	// 谁发的？
+//	// 能不能是前端传过来的？
+//	// Sender int64
+//
+//	// 发给谁
+//	// cid channel id(group id)，聊天 ID
+//	// 单聊，也是用聊天 ID
+//	Cid int64
+//	// 内容
+//	// Type 这个消息是什么消息
+//	// 这个是你 IM 内部的类型
+//	// type = "video", => content = url/资源标识符 key
+//	// content 不可能是视频本身
+//	// {"title": "GO从入门到入土", Addr: "https://oss.aliyun.com/im/resource/abc"}
+// @某人 {"metions": []int64, "text": }
+//	Type string
+//	// 你有文本消息，你有图片消息，你有视频消息
+//	// 你这个 Content 究竟是什么？
+//	Content string
+//
+//	// 万一你每个消息都要校验 token，可以在这里带
+//	//Token string
+//}
+
 type Message struct {
 	// 发过来的消息的序列号
 	// 用于前后端关联消息
