@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // Conn 稍微做一个封装
@@ -52,6 +53,21 @@ func (g *WsGateway) Start(addr string) error {
 
 func (g *WsGateway) wsHandler(writer http.ResponseWriter, request *http.Request) {
 	panic("")
+}
+
+// Uid 一般是从 jwt token 或者 session 里面取出来
+// 这里模拟从 header 里面读取出来
+func (g *WsGateway) Uid(req *http.Request) int64 {
+
+	// 拿到 token
+	//token := strings.TrimLeft(req.Header.Get("Authorization"), "Bearer ")
+	// jwt 解析
+	// jwt.Parse
+	// req.Cookie("sess_id")
+
+	uidStr := req.Header.Get("uid")
+	uid, _ := strconv.ParseInt(uidStr, 10, 64)
+	return uid
 }
 
 func (g *WsGateway) subscribeMsg() error {
