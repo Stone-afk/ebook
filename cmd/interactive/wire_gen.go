@@ -8,6 +8,7 @@ package main
 
 import (
 	"ebook/cmd/interactive/events/article"
+	"ebook/cmd/interactive/events/like"
 	"ebook/cmd/interactive/grpc"
 	"ebook/cmd/interactive/ioc"
 	"ebook/cmd/interactive/repository"
@@ -24,6 +25,9 @@ import (
 func Init() *appx.App {
 	logger := ioc.InitLogger()
 	client := ioc.InitEtcdClient()
+	saramaClient := ioc.InitKafka()
+	syncProducer := ioc.InitSyncProducer(saramaClient)
+	feedEventProducer := like.NewLikedFeedEventProducer(syncProducer)
 	srcDB := ioc.InitSRC(logger)
 	dstDB := ioc.InitDST(logger)
 	doubleWritePool := ioc.InitDoubleWritePool(srcDB, dstDB)
@@ -32,11 +36,9 @@ func Init() *appx.App {
 	cmdable := ioc.InitRedis()
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewInteractiveRepository(interactiveDAO, interactiveCache, logger)
-	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	interactiveService := service.NewInteractiveService(feedEventProducer, interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
 	server := ioc.InitGRPCxServer(logger, client, interactiveServiceServer)
-	saramaClient := ioc.InitKafka()
-	syncProducer := ioc.InitSyncProducer(saramaClient)
 	producer := ioc.InitMigratorProducer(syncProducer)
 	ginxServer := ioc.InitMigratorWeb(logger, srcDB, dstDB, doubleWritePool, producer)
 	interactiveReadEventConsumer := article.NewInteractiveReadEventConsumer(saramaClient, interactiveRepository, logger)
