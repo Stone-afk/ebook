@@ -20,3 +20,9 @@ etcd:
 kafka:
   addrs:
     - "localhost:9094"
+
+OpenIM:
+  secret:
+    - "openIm123"
+  host:
+    - "localhost:17778"

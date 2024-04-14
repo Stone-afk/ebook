@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"ebook/cmd/im/domain"
+	"ebook/cmd/pkg/logger"
 	"fmt"
 	"github.com/ecodeclub/ekit/net/httpx"
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ type RESTUserService struct {
 	secret   string
 	baseHost string
 	client   *http.Client
+	log      logger.Logger
 }
 
 func (s *RESTUserService) Sync(ctx context.Context, user domain.User) error {
@@ -34,6 +36,7 @@ func (s *RESTUserService) Sync(ctx context.Context, user domain.User) error {
 	}).Client(s.client).AddHeader("operationID", traceId).
 		Do().JSONScan(&resp)
 	if err != nil {
+		s.log.Error("同步用户到im系统异常", logger.Error(err))
 		return err
 	}
 	if resp.ErrCode != 0 {
@@ -42,10 +45,13 @@ func (s *RESTUserService) Sync(ctx context.Context, user domain.User) error {
 	return nil
 }
 
-func NewRESTUserService(secret string, baseHost string) UserService {
+func NewRESTUserService(secret Secret, baseHost BaseHost, client *http.Client, log logger.Logger) UserService {
 	return &RESTUserService{
-		secret:   secret,
-		baseHost: baseHost}
+		log:      log,
+		client:   client,
+		secret:   string(secret),
+		baseHost: string(baseHost),
+	}
 }
 
 type syncUserRequest struct {
