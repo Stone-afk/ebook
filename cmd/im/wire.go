@@ -15,6 +15,7 @@ var thirdProvider = wire.NewSet(
 	ioc.InitLogger,
 	ioc.GetSecret,
 	ioc.GetBaseHost,
+	ioc.InitDefaultHttpClient,
 )
 
 //go:generate wire
