@@ -3,14 +3,15 @@
 package main
 
 import (
-	"ebook/cmd/pkg/appx"
-	events "ebook/cmd/interactive/events/article"
+	"ebook/cmd/interactive/events/article"
+	"ebook/cmd/interactive/events/like"
 	"ebook/cmd/interactive/grpc"
 	"ebook/cmd/interactive/ioc"
 	"ebook/cmd/interactive/repository"
 	"ebook/cmd/interactive/repository/cache"
 	"ebook/cmd/interactive/repository/dao"
 	"ebook/cmd/interactive/service"
+	"ebook/cmd/pkg/appx"
 	"github.com/google/wire"
 )
 
@@ -45,7 +46,8 @@ func Init() *appx.App {
 		thirdProvider,
 		serviceProvider,
 		migratorProvider,
-		events.NewInteractiveReadEventConsumer,
+		article.NewInteractiveReadEventConsumer,
+		like.NewLikedFeedEventProducer,
 		grpc.NewInteractiveServiceServer,
 		ioc.NewConsumers,
 		ioc.InitGRPCxServer,

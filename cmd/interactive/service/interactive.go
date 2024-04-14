@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"ebook/cmd/interactive/domain"
+	"ebook/cmd/interactive/events/like"
 	"ebook/cmd/interactive/repository"
 	"ebook/cmd/pkg/logger"
 	"golang.org/x/sync/errgroup"
+	"strconv"
 )
 
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/interactive/service/interactive.go -package=svcmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/interactive/service/mocks/interactive.mock.go
@@ -22,15 +24,18 @@ type InteractiveService interface {
 }
 
 type interactiveService struct {
-	repo repository.InteractiveRepository
-	l    logger.Logger
+	feedEventProducer like.FeedEventProducer
+	repo              repository.InteractiveRepository
+	l                 logger.Logger
 }
 
-func NewInteractiveService(repo repository.InteractiveRepository,
+func NewInteractiveService(feedEventProducer like.FeedEventProducer,
+	repo repository.InteractiveRepository,
 	l logger.Logger) InteractiveService {
 	return &interactiveService{
-		repo: repo,
-		l:    l,
+		feedEventProducer: feedEventProducer,
+		repo:              repo,
+		l:                 l,
 	}
 }
 
@@ -79,9 +84,45 @@ func (svc *interactiveService) Get(ctx context.Context, biz string, bizId, userI
 	return intr, err
 }
 
+func (svc *interactiveService) sendFeedEvent(ctx context.Context, userId int64, inter domain.Interactive) {
+	var liked int
+	if inter.Liked {
+		liked = 1
+	}
+	evt := like.FeedEvent{
+		Type: "follower",
+		Metadata: map[string]string{
+			"liked":  strconv.Itoa(liked),
+			"biz":    inter.Biz,
+			"biz_id": strconv.FormatInt(inter.BizId, 10),
+			"uid":    strconv.FormatInt(userId, 10),
+		},
+	}
+	er := svc.feedEventProducer.ProduceFeedEvent(ctx, evt)
+	if er != nil {
+		svc.l.Error("ProduceFeedEvent 发送feed流事件失败", logger.Error(er))
+		er = svc.feedEventProducer.ProduceStandardFeedEvent(ctx, evt)
+		if er != nil {
+			svc.l.Error("ProduceStandardFeedEvent 发送feed流事件失败", logger.Error(er))
+		}
+	}
+}
+
 func (svc *interactiveService) Like(ctx context.Context, biz string, bizId int64, userId int64) error {
 	// 点赞
-	return svc.repo.IncrLike(ctx, biz, bizId, userId)
+	err := svc.repo.IncrLike(ctx, biz, bizId, userId)
+	if err != nil {
+		return err
+	}
+	go func() {
+		inter, er := svc.Get(ctx, biz, bizId, userId)
+		if er != nil {
+			svc.l.Error("获取喜欢详情信息失败", logger.Error(er))
+			return
+		}
+		svc.sendFeedEvent(ctx, userId, inter)
+	}()
+	return nil
 }
 
 func (svc *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {

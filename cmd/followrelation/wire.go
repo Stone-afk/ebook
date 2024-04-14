@@ -3,6 +3,7 @@
 package main
 
 import (
+	"ebook/cmd/followrelation/events"
 	grpc7 "ebook/cmd/followrelation/grpc"
 	"ebook/cmd/followrelation/ioc"
 	"ebook/cmd/followrelation/repository"
@@ -26,6 +27,8 @@ var thirdProvider = wire.NewSet(
 	ioc.InitRedis,
 	ioc.InitLogger,
 	ioc.InitEtcdClient,
+	ioc.InitKafka,
+	ioc.NewSyncProducer,
 )
 
 //go:generate wire
@@ -33,6 +36,7 @@ func Init() *appx.App {
 	wire.Build(
 		thirdProvider,
 		serviceProviderSet,
+		events.NewFollowerFeedEventProducer,
 		ioc.InitGRPCxServer,
 		wire.Struct(new(appx.App), "GRPCServer"),
 	)

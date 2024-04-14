@@ -7,6 +7,7 @@
 package main
 
 import (
+	"ebook/cmd/followrelation/events"
 	"ebook/cmd/followrelation/grpc"
 	"ebook/cmd/followrelation/ioc"
 	"ebook/cmd/followrelation/repository"
@@ -21,16 +22,19 @@ import (
 
 //go:generate wire
 func Init() *appx.App {
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	feedEventProducer := events.NewFollowerFeedEventProducer(syncProducer)
 	logger := ioc.InitLogger()
 	db := ioc.InitDB(logger)
 	followRelationDao := dao.NewGORMFollowRelationDAO(db)
 	cmdable := ioc.InitRedis()
 	followCache := cache.NewRedisFollowCache(cmdable)
 	followRepository := repository.NewFollowRelationRepository(followRelationDao, followCache, logger)
-	followRelationService := service.NewFollowRelationService(followRepository)
+	followRelationService := service.NewFollowRelationService(feedEventProducer, logger, followRepository)
 	followServiceServer := grpc.NewFollowRelationServiceServer(followRelationService)
-	client := ioc.InitEtcdClient()
-	server := ioc.InitGRPCxServer(followServiceServer, client, logger)
+	clientv3Client := ioc.InitEtcdClient()
+	server := ioc.InitGRPCxServer(followServiceServer, clientv3Client, logger)
 	app := &appx.App{
 		GRPCServer: server,
 	}
@@ -41,4 +45,4 @@ func Init() *appx.App {
 
 var serviceProviderSet = wire.NewSet(cache.NewRedisFollowCache, dao.NewGORMFollowRelationDAO, repository.NewFollowRelationRepository, service.NewFollowRelationService, grpc.NewFollowRelationServiceServer)
 
-var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger, ioc.InitEtcdClient)
+var thirdProvider = wire.NewSet(ioc.InitDB, ioc.InitRedis, ioc.InitLogger, ioc.InitEtcdClient, ioc.InitKafka, ioc.NewSyncProducer)

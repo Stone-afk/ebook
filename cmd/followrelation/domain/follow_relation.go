@@ -2,6 +2,7 @@ package domain
 
 // FollowRelation 关注数据
 type FollowRelation struct {
+	Id int64
 	// 被关注的人
 	Followee int64
 	// 关注的人

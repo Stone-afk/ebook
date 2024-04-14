@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const topicLikeEvent = "like_feed_event"
+const topicLikeEvent = "liked_feed_event"
 
 // LikeFeedEvent 由业务方定义，本服务做适配
 type LikeFeedEvent struct {

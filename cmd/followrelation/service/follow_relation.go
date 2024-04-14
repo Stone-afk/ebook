@@ -3,11 +3,16 @@ package service
 import (
 	"context"
 	"ebook/cmd/followrelation/domain"
+	"ebook/cmd/followrelation/events"
 	"ebook/cmd/followrelation/repository"
+	"ebook/cmd/pkg/logger"
+	"strconv"
 )
 
 type followRelationService struct {
-	repo repository.FollowRepository
+	feedEventProducer events.FeedEventProducer
+	l                 logger.Logger
+	repo              repository.FollowRepository
 }
 
 func (s *followRelationService) GetAllFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
@@ -28,6 +33,25 @@ func (s *followRelationService) GetAllFollower(ctx context.Context, followee int
 	return relations, nil
 }
 
+func (s *followRelationService) sendFeedEvent(ctx context.Context, f domain.FollowRelation) {
+	evt := events.FeedEvent{
+		Type: "follower",
+		Metadata: map[string]string{
+			"followee": strconv.FormatInt(f.Followee, 10),
+			"follower": strconv.FormatInt(f.Follower, 10),
+			"biz_id":   strconv.FormatInt(f.Id, 10),
+		},
+	}
+	er := s.feedEventProducer.ProduceFeedEvent(ctx, evt)
+	if er != nil {
+		s.l.Error("ProduceFeedEvent 发送feed流事件失败", logger.Error(er))
+		er = s.feedEventProducer.ProduceStandardFeedEvent(ctx, evt)
+		if er != nil {
+			s.l.Error("ProduceStandardFeedEvent 发送feed流事件失败", logger.Error(er))
+		}
+	}
+}
+
 func (s *followRelationService) GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error) {
 	return s.repo.GetFollowStatics(ctx, uid)
 }
@@ -45,18 +69,33 @@ func (s *followRelationService) FollowInfo(ctx context.Context, follower, follow
 }
 
 func (s *followRelationService) Follow(ctx context.Context, follower, followee int64) error {
-	return s.repo.AddFollowRelation(ctx, domain.FollowRelation{
+	err := s.repo.AddFollowRelation(ctx, domain.FollowRelation{
 		Followee: followee,
 		Follower: follower,
 	})
+	if err != nil {
+		return err
+	}
+	go func() {
+		f, er := s.repo.FollowInfo(ctx, follower, followee)
+		if er != nil {
+			s.l.Error("获取关注详情信息失败", logger.Error(er))
+			return
+		}
+		s.sendFeedEvent(ctx, f)
+	}()
+	return nil
 }
 
 func (s *followRelationService) CancelFollow(ctx context.Context, follower, followee int64) error {
 	return s.repo.InactiveFollowRelation(ctx, follower, followee)
 }
 
-func NewFollowRelationService(repo repository.FollowRepository) FollowRelationService {
+func NewFollowRelationService(feedEventProducer events.FeedEventProducer,
+	l logger.Logger, repo repository.FollowRepository) FollowRelationService {
 	return &followRelationService{
-		repo: repo,
+		feedEventProducer: feedEventProducer,
+		repo:              repo,
+		l:                 l,
 	}
 }

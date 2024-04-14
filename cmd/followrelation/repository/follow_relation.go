@@ -89,6 +89,7 @@ func (repo *CachedRelationRepository) GetFollowStatics(ctx context.Context, uid 
 
 func (repo *CachedRelationRepository) toDomain(fr dao.FollowRelation) domain.FollowRelation {
 	return domain.FollowRelation{
+		Id:       fr.ID,
 		Followee: fr.Followee,
 		Follower: fr.Follower,
 	}
