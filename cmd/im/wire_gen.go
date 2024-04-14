@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package im
+package main
 
 import (
 	"ebook/cmd/im/events"

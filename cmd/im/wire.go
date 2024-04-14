@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package im
+package main
 
 import (
 	"ebook/cmd/im/events"
