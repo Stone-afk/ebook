@@ -12,22 +12,22 @@ import (
 	"time"
 )
 
-type MySQLBinlogConsumer struct {
+type SyncUserConsumer struct {
 	client sarama.Client
 	l      logger.Logger
 	svc    service.UserService
 }
 
-func NewMySQLBinlogConsumer(client sarama.Client,
-	l logger.Logger, svc service.UserService) *MySQLBinlogConsumer {
-	return &MySQLBinlogConsumer{
+func NewSyncUserConsumer(client sarama.Client,
+	l logger.Logger, svc service.UserService) *SyncUserConsumer {
+	return &SyncUserConsumer{
 		client: client,
 		l:      l,
 		svc:    svc,
 	}
 }
 
-func (r *MySQLBinlogConsumer) Start() error {
+func (r *SyncUserConsumer) Start() error {
 	cg, err := sarama.NewConsumerGroupFromClient("open_im",
 		r.client)
 	if err != nil {
@@ -44,7 +44,7 @@ func (r *MySQLBinlogConsumer) Start() error {
 	return err
 }
 
-func (r *MySQLBinlogConsumer) Consume(msg *sarama.ConsumerMessage,
+func (r *SyncUserConsumer) Consume(msg *sarama.ConsumerMessage,
 	val canalx.Message[User]) error {
 	// 因为共用了一个 topic，所以会有很多表的数据，不是自己的就不用管了
 	// 只处理用户表的
