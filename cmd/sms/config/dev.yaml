@@ -1,0 +1,23 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/ebook_sms"
+
+grpc:
+  #  启动监听 9000 端口
+  server:
+    port: 8100
+    etcdTTL: 60
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+tencentSms:
+  secretId: "xxxxxx"
+  secretKey: "oooooo"
