@@ -50,7 +50,7 @@ func (p *SaramaSyncProducer) ProduceStandardSyncEvent(ctx context.Context, ue Us
 	return err
 }
 
-func NewSaramaSyncProducer(pc sarama.SyncProducer) SyncSearchEventProducer {
+func NewSyncSearchProducer(pc sarama.SyncProducer) SyncSearchEventProducer {
 	return &SaramaSyncProducer{
 		pc,
 	}
