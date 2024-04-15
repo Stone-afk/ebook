@@ -27,7 +27,8 @@ var thirdProvider = wire.NewSet(
 func Init() *appx.App {
 	wire.Build(
 		thirdProvider,
-		events.NewSaramaSyncProducer,
+		events.NewSyncSearchProducer,
+		events.NewSyncOpenIMProducer,
 		cache.NewRedisUserCache,
 		dao.NewGORMUserDAO,
 		repository.NewUserRepository,

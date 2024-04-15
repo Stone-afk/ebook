@@ -10,16 +10,18 @@ import (
 )
 
 type userService struct {
-	producer events.SyncSearchEventProducer
-	repo     repository.UserRepository
-	l        logger.Logger
+	syncSearchEventProducer events.SyncSearchEventProducer
+	syncIMEventProducer     events.SyncIMEventProducer
+	repo                    repository.UserRepository
+	l                       logger.Logger
 }
 
-func NewUserService(producer events.SyncSearchEventProducer, repo repository.UserRepository, l logger.Logger) UserService {
+func NewUserService(syncIMEventProducer events.SyncIMEventProducer, syncSearchEventProducer events.SyncSearchEventProducer, repo repository.UserRepository, l logger.Logger) UserService {
 	return &userService{
-		producer: producer,
-		repo:     repo,
-		l:        l,
+		syncIMEventProducer:     syncIMEventProducer,
+		syncSearchEventProducer: syncSearchEventProducer,
+		repo:                    repo,
+		l:                       l,
 	}
 }
 
@@ -70,6 +72,7 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 	if err == nil {
 		go func() {
 			svc.sendSyncEventToSearch(ctx, u)
+			svc.sendSyncEventToIM(ctx, u)
 		}()
 	}
 	// 主从模式下，这里要从主库中读取，暂时我们不需要考虑
@@ -83,13 +86,30 @@ func (svc *userService) sendSyncEventToSearch(ctx context.Context, u domain.User
 		Phone:    u.Phone,
 		Nickname: u.Nickname,
 	}
-	er := svc.producer.ProduceSyncEvent(ctx, evt)
+	er := svc.syncSearchEventProducer.ProduceSyncEvent(ctx, evt)
 	if er != nil {
 		svc.l.Error("ProduceSyncEvent 发送同步搜索用户事件失败", logger.Error(er))
-		er = svc.producer.ProduceStandardSyncEvent(ctx, evt)
+		er = svc.syncSearchEventProducer.ProduceStandardSyncEvent(ctx, evt)
 		if er != nil {
 			svc.l.Error("ProduceStandardSyncEvent 发送同步搜索用户事件失败", logger.Error(er))
 		}
+	}
+}
+
+func (svc *userService) sendSyncEventToIM(ctx context.Context, u domain.User) {
+	evt := events.IMUserEvent{
+		Id:            u.Id,
+		Email:         u.Email,
+		Phone:         u.Phone,
+		Nickname:      u.Nickname,
+		Password:      u.Password,
+		WechatOpenId:  u.WechatInfo.OpenId,
+		WechatUnionId: u.WechatInfo.UnionId,
+		Ctime:         u.Ctime.UnixMilli(),
+	}
+	err := svc.syncIMEventProducer.ProduceIMEvent(ctx, evt)
+	if err != nil {
+		svc.l.Error("发送同步IM用户事件失败", logger.Error(err))
 	}
 }
 
