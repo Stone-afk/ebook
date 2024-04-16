@@ -5,6 +5,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+func main() {
+	initViperWatch()
+	app := Init()
+	err := app.GRPCServer.Serve()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func initViperWatch() {
 	cfile := pflag.String("config",
 		"config/dev.yaml", "配置文件路径")
