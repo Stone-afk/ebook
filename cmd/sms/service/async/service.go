@@ -2,7 +2,6 @@ package async
 
 import (
 	"context"
-	"ebook/cmd/internal/service/sms"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/sms/domain"
 	"ebook/cmd/sms/repository"
@@ -17,7 +16,7 @@ type Service struct {
 	repo repository.AsyncSmsRepository
 }
 
-func NewService(svc sms.Service,
+func NewService(svc service.Service,
 	repo repository.AsyncSmsRepository,
 	l logger.Logger) *Service {
 	res := &Service{

@@ -11,6 +11,13 @@ type Service struct {
 	key []byte
 }
 
+func NewService(svc service.Service, key []byte) *Service {
+	return &Service{
+		svc: svc,
+		key: key,
+	}
+}
+
 type Claims struct {
 	jwt.RegisteredClaims
 	Tpl string
