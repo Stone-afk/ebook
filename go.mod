@@ -5,6 +5,8 @@ go 1.20
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/IBM/sarama v1.42.1
+	github.com/alibabacloud-go/darabonba-openapi v0.2.1
+	github.com/alibabacloud-go/dysmsapi-20170525/v2 v2.0.18
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.526
 	github.com/aliyun/aliyun-tablestore-go-sdk v1.7.14
 	github.com/aws/aws-sdk-go v1.46.6
@@ -19,12 +21,15 @@ require (
 	github.com/go-kratos/aegis v0.2.0
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20240202023911-c7fa51df7ae7
 	github.com/go-kratos/kratos/v2 v2.7.2
+	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.5.0
+	github.com/gorilla/websocket v1.5.0
 	github.com/gotomicro/redis-lock v0.0.3
 	github.com/lithammer/shortuuid/v4 v4.0.0
+	github.com/olivere/elastic/v7 v7.0.32
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/redis/go-redis/v9 v9.4.0
@@ -32,6 +37,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.731
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.731
 	github.com/wechatpay-apiv3/wechatpay-go v0.2.18
 	github.com/zeromicro/go-zero v1.6.2
@@ -57,11 +63,20 @@ require (
 )
 
 require (
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
+	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
+	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
+	github.com/alibabacloud-go/openapi-util v0.0.11 // indirect
+	github.com/alibabacloud-go/tea v1.1.19 // indirect
+	github.com/alibabacloud-go/tea-utils v1.4.5 // indirect
+	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
+	github.com/aliyun/credentials-go v1.1.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/clbanning/mxj/v2 v2.5.6 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -124,7 +139,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/olivere/elastic/v7 v7.0.32 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
@@ -142,7 +156,7 @@ require (
 	github.com/spf13/afero v1.10.0 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.731 // indirect
+	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
