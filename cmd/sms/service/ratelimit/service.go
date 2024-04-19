@@ -2,8 +2,8 @@ package ratelimit
 
 import (
 	"context"
-	"ebook/cmd/internal/service/sms"
 	"ebook/cmd/pkg/ratelimit"
+	"ebook/cmd/sms/service"
 	"fmt"
 )
 
@@ -11,11 +11,11 @@ var errLimited = fmt.Errorf("触发了限流")
 
 type Service struct {
 	key     string // 服务商地址
-	svc     sms.Service
+	svc     service.Service
 	limiter ratelimit.Limiter
 }
 
-func NewService(key string, svc sms.Service, limiter ratelimit.Limiter) sms.Service {
+func NewService(key string, svc service.Service, limiter ratelimit.Limiter) service.Service {
 	return &Service{
 		key:     key,
 		svc:     svc,
