@@ -1,0 +1,18 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/ebook_code"
+
+grpc:
+  server:
+    port: 8101
+    etcdTTL: 60
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
