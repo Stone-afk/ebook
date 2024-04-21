@@ -5,6 +5,9 @@ grpc:
   server:
     port: 8101
     etcdTTL: 60
+  client:
+    sms:
+      target: "etcd:///service/sms"
 
 redis:
   addr: "localhost:6379"
