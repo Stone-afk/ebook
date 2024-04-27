@@ -1,0 +1,14 @@
+grpc:
+  #  启动监听 9000 端口
+  server:
+    addr: 8102
+
+weChatConf:
+  appId: "xxxxxxx"
+  appSecret: "ooooooo"
+
+prometheus:
+  nameSpace: "oauth2"
+  subsystem: "ebook"
+  instanceId: "1"
+  name: "oauth2_prometheus"
