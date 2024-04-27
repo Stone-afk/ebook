@@ -5,6 +5,20 @@ import (
 	"ebook/cmd/oauth2/domain/wechat"
 )
 
+type Result struct {
+	ErrCode int64  `json:"errcode"`
+	ErrMsg  string `json:"errMsg"`
+
+	Scope string `json:"scope"`
+
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
+
+	OpenId  string `json:"openid"`
+	UnionId string `json:"unionid"`
+}
+
 //go:generate mockgen -source=/Users/stone/go_project/ebook/ebook/cmd/oauth2/service/wechat/types.go -package=wechatmocks -destination=/Users/stone/go_project/ebook/ebook/cmd/oauth2/service/wechat/mocks/svc.mock.go
 type Service interface {
 	AuthURL(ctx context.Context, state string) (string, error)
