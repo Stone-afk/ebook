@@ -2,6 +2,7 @@ grpc:
   #  启动监听 9000 端口
   server:
     addr: 8102
+    etcdTTL: 60
 
 weChatConf:
   appId: "xxxxxxx"
@@ -12,3 +13,8 @@ prometheus:
   subsystem: "ebook"
   instanceId: "1"
   name: "oauth2_prometheus"
+
+
+etcd:
+  endpoints:
+    - "localhost:12379"
