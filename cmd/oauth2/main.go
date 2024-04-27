@@ -1,9 +1,18 @@
-package oauth2
+package main
 
 import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
+
+func main() {
+	initViperWatch()
+	app := Init()
+	err := app.GRPCServer.Serve()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func initViperWatch() {
 	cfile := pflag.String("config",
