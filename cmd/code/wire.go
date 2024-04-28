@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package code
+package main
 
 import (
 	"ebook/cmd/code/grpc"
