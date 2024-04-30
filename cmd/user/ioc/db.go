@@ -55,8 +55,8 @@ func InitDB(l logger.Logger) *gorm.DB {
 	}
 
 	prom := prometheus2.Callbacks{
-		Namespace:  "geekbang_daming",
-		Subsystem:  "webook",
+		Namespace:  "ebook",
+		Subsystem:  "user",
 		Name:       "gorm",
 		InstanceID: "my-instance-1",
 		Help:       "gorm DB 查询",
