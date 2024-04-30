@@ -6,7 +6,12 @@ import (
 )
 
 func main() {
-	panic("")
+	initViperWatch()
+	app := Init()
+	err := app.GRPCServer.Serve()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func initViperWatch() {
