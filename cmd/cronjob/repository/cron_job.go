@@ -3,15 +3,15 @@ package repository
 import (
 	"context"
 	"ebook/cmd/cronjob/domain"
-	"ebook/cmd/internal/repository/dao/job"
+	"ebook/cmd/cronjob/repository/dao"
 	"time"
 )
 
 type PreemptCronJobRepository struct {
-	dao job.JobDAO
+	dao dao.JobDAO
 }
 
-func NewPreemptCronJobRepository(dao job.JobDAO) CronJobRepository {
+func NewPreemptCronJobRepository(dao dao.JobDAO) CronJobRepository {
 	return &PreemptCronJobRepository{dao: dao}
 }
 
@@ -43,8 +43,8 @@ func (repo *PreemptCronJobRepository) Preempt(ctx context.Context) (domain.CronJ
 	return repo.toDomain(j), nil
 }
 
-func (repo *PreemptCronJobRepository) toEntity(j domain.CronJob) job.Job {
-	return job.Job{
+func (repo *PreemptCronJobRepository) toEntity(j domain.CronJob) dao.Job {
+	return dao.Job{
 		Id:         j.Id,
 		Name:       j.Name,
 		Expression: j.Expression,
@@ -54,7 +54,7 @@ func (repo *PreemptCronJobRepository) toEntity(j domain.CronJob) job.Job {
 	}
 }
 
-func (repo *PreemptCronJobRepository) toDomain(j job.Job) domain.CronJob {
+func (repo *PreemptCronJobRepository) toDomain(j dao.Job) domain.CronJob {
 	return domain.CronJob{
 		Id:         j.Id,
 		Name:       j.Name,
