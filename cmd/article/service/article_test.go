@@ -101,7 +101,7 @@ func Test_articleService_Publish(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			repo := tc.mock(ctrl)
-			svc := NewArticleService(repo, nil, nop.NewNopLogger())
+			svc := NewArticleService(repo, nil, nil, nil, nop.NewNopLogger())
 			id, err := svc.Publish(context.Background(), tc.art)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantId, id)
