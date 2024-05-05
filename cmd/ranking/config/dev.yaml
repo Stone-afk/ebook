@@ -1,0 +1,24 @@
+db:
+  dsn: "root:root@tcp(localhost:13316)/ebook_cron_job"
+
+grpc:
+  #  启动监听 9000 端口
+  server:
+    port: 8104
+    etcdTTL: 60
+  client:
+    intr:
+      target: "etcd:///service/interactive"
+    article:
+      target: "etcd:///service/article"
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
