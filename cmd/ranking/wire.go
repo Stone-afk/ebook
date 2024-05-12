@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package ranking
+package main
 
 import (
 	"ebook/cmd/pkg/appx"
