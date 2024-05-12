@@ -1,1 +1,59 @@
 package grpc
+
+import (
+	"context"
+	rankingv1 "ebook/cmd/api/proto/gen/ranking/v1"
+	"ebook/cmd/ranking/domain"
+	"ebook/cmd/ranking/service"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+type RankingServiceServer struct {
+	svc service.RankingService
+	rankingv1.UnimplementedRankingServiceServer
+}
+
+func NewRankingServiceServer(svc service.RankingService) *RankingServiceServer {
+	return &RankingServiceServer{
+		svc: svc,
+	}
+}
+
+func (s *RankingServiceServer) Register(server grpc.ServiceRegistrar) {
+	rankingv1.RegisterRankingServiceServer(server, s)
+}
+
+func (s *RankingServiceServer) RankTopN(ctx context.Context, request *rankingv1.RankTopNRequest) (*rankingv1.RankTopNResponse, error) {
+	err := s.svc.RankTopN(ctx)
+	return &rankingv1.RankTopNResponse{}, err
+}
+
+func (s *RankingServiceServer) TopN(ctx context.Context, request *rankingv1.TopNRequest) (*rankingv1.TopNResponse, error) {
+	domainArticles, err := s.svc.TopN(ctx)
+	if err != nil {
+		return &rankingv1.TopNResponse{}, err
+	}
+	res := make([]*rankingv1.Article, 0, len(domainArticles))
+	for _, art := range domainArticles {
+		res = append(res, convertToV(art))
+	}
+	return &rankingv1.TopNResponse{
+		Articles: res,
+	}, nil
+}
+
+func convertToV(domainArticle domain.Article) *rankingv1.Article {
+	return &rankingv1.Article{
+		Id:      domainArticle.Id,
+		Title:   domainArticle.Title,
+		Status:  int32(domainArticle.Status),
+		Content: domainArticle.Content,
+		Author: &rankingv1.Author{
+			Id:   domainArticle.Author.Id,
+			Name: domainArticle.Author.Name,
+		},
+		Ctime: timestamppb.New(domainArticle.Ctime),
+		Utime: timestamppb.New(domainArticle.Utime),
+	}
+}
