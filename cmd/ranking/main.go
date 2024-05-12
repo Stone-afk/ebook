@@ -9,6 +9,11 @@ import (
 
 func main() {
 	initViperWatch()
+	app := Init()
+	err := app.GRPCServer.Serve()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func initViperWatch() {
