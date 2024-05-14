@@ -28,7 +28,7 @@ func (h *RewardHandler) GetReward(
 	claims ginx.UserClaims) (Result, error) {
 	resp, err := h.rewardClient.GetReward(ctx, &rewardv1.GetRewardRequest{
 		Rid: req.Rid,
-		Uid: claims.Id,
+		Uid: claims.UserId,
 	})
 	if err != nil {
 		return Result{
