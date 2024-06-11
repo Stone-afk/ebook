@@ -23,18 +23,24 @@ import (
 	"time"
 )
 
-func InitWebServer(mdls []gin.HandlerFunc,
+func InitGinServer(mdls []gin.HandlerFunc,
 	userHdl *handler.UserHandler,
 	oauth2WechatHdl *handler.OAuth2WechatHandler,
 	articleHdl *handler.ArticleHandler,
-	obHdl *handler.ObservabilityHandler) *gin.Engine {
+	rewardHdl *handler.RewardHandler,
+	obHdl *handler.ObservabilityHandler) *ginx.Server {
 	server := gin.Default()
 	server.Use(mdls...)
 	userHdl.RegisterRoutes(server)
 	articleHdl.RegisterRoutes(server)
 	oauth2WechatHdl.RegisterRoutes(server)
 	obHdl.RegisterRoutes(server)
-	return server
+	rewardHdl.RegisterRoutes(server)
+	addr := viper.GetString("http.addr")
+	return &ginx.Server{
+		Engine: server,
+		Addr:   addr,
+	}
 }
 
 func InitMiddlewares(redisCmd redis.Cmdable, jwtHdl ijwt.Handler, l logger.Logger) []gin.HandlerFunc {
