@@ -20,11 +20,14 @@ var _ Handler = &RedisJWTHandler{}
 
 type RedisJWTHandler struct {
 	cmd redis.Cmdable
+	// 长 token 的过期时间
+	rtExpiration time.Duration
 }
 
 func NewRedisJWTHandler(cmd redis.Cmdable) Handler {
 	return &RedisJWTHandler{
-		cmd: cmd,
+		cmd:          cmd,
+		rtExpiration: time.Hour * 24 * 7,
 	}
 }
 
@@ -58,7 +61,7 @@ func (h *RedisJWTHandler) ClearToken(ctx *gin.Context) error {
 	ctx.Header("x-refresh-token", "")
 	claims := ctx.MustGet("claims").(*UserClaims)
 	return h.cmd.Set(ctx, fmt.Sprintf("users:ssid:%s", claims.Ssid),
-		"", time.Hour*24*7).Err()
+		"", h.rtExpiration).Err()
 }
 
 func (h *RedisJWTHandler) SetLoginToken(ctx *gin.Context, userId int64) error {

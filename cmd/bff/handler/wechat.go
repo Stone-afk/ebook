@@ -50,11 +50,13 @@ func NewOAuth2WechatHandler(svc oauth2v1.Oauth2ServiceClient,
 	jwtHdl ijwt.Handler,
 	cfg WechatHandlerConfig) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
-		wechatSvc:     svc,
-		userSvc:       userSvc,
-		stateTokenKey: []byte("95osj3fUD7foxmlYdDbncXz4VD2igvf1"),
-		cfg:           cfg,
-		Handler:       jwtHdl,
+		wechatSvc: svc,
+		userSvc:   userSvc,
+		// 万一后续我们要改，也可以做成可配置的。
+		stateCookieName: "jwt-state",
+		stateTokenKey:   []byte("95osj3fUD7foxmlYdDbncXz4VD2igvf1"),
+		cfg:             cfg,
+		Handler:         jwtHdl,
 	}
 }
 
