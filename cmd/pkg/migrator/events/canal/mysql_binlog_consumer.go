@@ -1,10 +1,11 @@
-package events
+package canal
 
 import (
 	"context"
 	"ebook/cmd/pkg/canalx"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator"
+	"ebook/cmd/pkg/migrator/events"
 	"ebook/cmd/pkg/migrator/validator"
 	"ebook/cmd/pkg/saramax"
 	"github.com/IBM/sarama"
@@ -30,7 +31,7 @@ func NewMySQLBinlogConsumer[T migrator.Entity](
 	l logger.Logger,
 	src *gorm.DB,
 	dst *gorm.DB,
-	p Producer,
+	p events.Producer,
 	topic string, groupId string, database string) *MySQLBinlogConsumer[T] {
 	srcToDst := validator.NewCanalIncrValidator[T](src, dst, "SRC", l, p)
 	dstToSrc := validator.NewCanalIncrValidator[T](src, dst, "DST", l, p)

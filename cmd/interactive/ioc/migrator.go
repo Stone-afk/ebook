@@ -6,6 +6,7 @@ import (
 	"ebook/cmd/pkg/gormx/connpool"
 	"ebook/cmd/pkg/logger"
 	"ebook/cmd/pkg/migrator/events"
+	"ebook/cmd/pkg/migrator/events/canal"
 	"ebook/cmd/pkg/migrator/events/fixer"
 	"ebook/cmd/pkg/migrator/scheduler"
 	"github.com/IBM/sarama"
@@ -17,7 +18,7 @@ import (
 const topic = "migrator_interactive"
 
 type InteractiveMySQLBinlogConsumer struct {
-	*events.MySQLBinlogConsumer[dao.Interactive]
+	*canal.MySQLBinlogConsumer[dao.Interactive]
 }
 
 func InitInteractiveMySQLBinlogConsumer(
@@ -27,7 +28,7 @@ func InitInteractiveMySQLBinlogConsumer(
 	dst DstDB,
 	p events.Producer) *InteractiveMySQLBinlogConsumer {
 	return &InteractiveMySQLBinlogConsumer{
-		MySQLBinlogConsumer: events.NewMySQLBinlogConsumer[dao.Interactive](
+		MySQLBinlogConsumer: canal.NewMySQLBinlogConsumer[dao.Interactive](
 			client, l, src, dst, p,
 			"interactive_binlog",
 			"migrator_interactive", "ebook_interactive"),
