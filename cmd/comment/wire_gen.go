@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package comment
+package main
 
 import (
 	"ebook/cmd/comment/grpc"
