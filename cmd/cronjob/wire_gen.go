@@ -28,8 +28,12 @@ func Init() *appx.App {
 	cronJobService := service.NewCronJobService(cronJobRepository, logger)
 	cronJobServiceServer := grpc.NewCronJobServiceServer(cronJobService)
 	server := ioc.InitGRPCServer(logger, client, cronJobServiceServer)
+	rankingServiceClient := ioc.InitRankingClient(client)
+	v := ioc.InitExecutors(rankingServiceClient)
+	scheduler := ioc.InitScheduler(logger, cronJobService, v...)
 	app := &appx.App{
 		GRPCServer: server,
+		Scheduler:  scheduler,
 	}
 	return app
 }

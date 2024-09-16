@@ -6,6 +6,9 @@ grpc:
   server:
     port: 8103
     etcdTTL: 60
+  client:
+    ranking:
+      target: "etcd:///service/ranking"
 
 redis:
   addr: "localhost:6379"

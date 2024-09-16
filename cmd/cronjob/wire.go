@@ -30,7 +30,10 @@ func Init() *appx.App {
 		serviceProviderSet,
 		grpc.NewCronJobServiceServer,
 		ioc.InitGRPCServer,
-		wire.Struct(new(appx.App), "GRPCServer"),
+		ioc.InitRankingClient,
+		ioc.InitExecutors,
+		ioc.InitScheduler,
+		wire.Struct(new(appx.App), "GRPCServer", "Scheduler"),
 	)
 	return new(appx.App)
 }
