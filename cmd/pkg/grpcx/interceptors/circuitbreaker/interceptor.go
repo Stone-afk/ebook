@@ -58,8 +58,12 @@ func (b *InterceptorBuilder) BuildServerInterceptorV1() grpc.UnaryServerIntercep
 			resp, err = handler(ctx, req)
 			if err == nil && b.threshold != 0 {
 				// 你要考虑调大 threshold
+				b.threshold = b.threshold * 2
 			} else if b.threshold != 0 {
 				// 你要考虑调小 threshold
+				b.threshold = b.threshold / 2
+			} else {
+				b.threshold = 1
 			}
 		}
 		return
@@ -70,5 +74,6 @@ func (b *InterceptorBuilder) allow() bool {
 	// 这边就套用我们之前在短信里面讲的，判定节点是否健康的各种做法
 	// 从prometheus 里面拿数据判定
 	// prometheus.DefaultGatherer.Gather()
+	// 通过计算，请求成功概率判定节点是否健康，比如节点请求成功概率小于等于70%我就认为需要熔断了
 	return false
 }
